@@ -3,9 +3,9 @@ package dto
 import (
 	"fmt"
 
-	"main/internal/domain/models"
-	"main/pkg/converter"
-	"main/pkg/translator"
+	"main/internal/application/models"
+
+	"github.com/google/uuid"
 )
 
 type BookingCancelForm struct {
@@ -19,32 +19,25 @@ type BookingCancelURI struct {
 type BookingCreateForm struct {
 	Token string `form:"token" binding:"required,len=44"`
 }
-type ClassView struct {
-	WeekDay    string
-	StartDate  string
-	StartHour  string
-	ClassLevel string
-	ClassName  string
-	Location   string
+
+type BookingCancellationFormView struct {
+	Class             BookingCancellationClassView `json:"class"`
+	BookingID         uuid.UUID                    `json:"booking_id"`
+	ConfirmationToken string                       `json:"confirmation_token"`
 }
 
-func ToClassView(class models.Class) (ClassView, error) {
-	warsawStartTime, err := converter.ConvertToWarsawTime(class.StartTime)
+func ToBookingCancellationFormView(
+	form models.BookingCancellationForm,
+) (BookingCancellationFormView, error) {
+	classEssentialView, err := FromBookingCancellationClass(form.Class)
 	if err != nil {
-		return ClassView{}, fmt.Errorf("could not convert class start time from booking: %w", err)
+		return BookingCancellationFormView{},
+			fmt.Errorf("could not convert classDetails to classView: %w", err)
 	}
 
-	weekDay, err := translator.TranslateToWeekDayToPolish(warsawStartTime.Weekday())
-	if err != nil {
-		return ClassView{}, fmt.Errorf("could not convert weekday from booking: %w", err)
-	}
-
-	return ClassView{
-		WeekDay:    weekDay,
-		StartDate:  warsawStartTime.Format(converter.DateLayout),
-		StartHour:  warsawStartTime.Format(converter.HourLayout),
-		ClassLevel: class.ClassLevel,
-		ClassName:  class.ClassName,
-		Location:   class.Location,
+	return BookingCancellationFormView{
+		Class:             classEssentialView,
+		BookingID:         form.BookingID,
+		ConfirmationToken: form.ConfirmationToken,
 	}, nil
 }

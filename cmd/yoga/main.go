@@ -13,6 +13,7 @@ import (
 
 	"main/internal/application/bookings"
 	"main/internal/application/classes"
+	"main/internal/application/location"
 	"main/internal/application/passes"
 	"main/internal/application/pendingbookings"
 	"main/internal/application/reminder"
@@ -179,18 +180,23 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	unitOfWork := sqliteRepo.NewUnitOfWork(database)
 	passManager := services.PassManager{}
 
+	locationResolver := location.NewMemoryResolver()
+
 	classesService := classes.NewService(
 		classesRepo,
 		bookingsRepo,
 		unitOfWork,
 		&passManager,
 		emailNotifier,
+		locationResolver,
+		cfg.DomainAddr,
 	)
 	bookingsService := bookings.NewService(
 		unitOfWork,
 		bookingsRepo,
 		&passManager,
 		emailNotifier,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 
@@ -209,6 +215,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		bookingsRepo,
 		emailNotifier,
 		&passManager,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 

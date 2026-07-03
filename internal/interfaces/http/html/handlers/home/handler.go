@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"main/internal/domain/services"
+	"main/internal/interfaces/http/html/dto"
 	viewErrs "main/internal/interfaces/http/html/errs"
-	sharedDTO "main/internal/interfaces/http/shared/dto"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,14 +35,14 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	limit := classViewLimit
 
-	classes, err := h.classesService.ListClasses(ctx, true, &limit)
+	classItems, err := h.classesService.ListClasses(ctx, true, &limit)
 	if err != nil {
 		h.viewErrorHandler.Handle(ginCtx, "err.tmpl", err)
 
 		return
 	}
 
-	classesView, err := sharedDTO.ToClassesWithCurrentCapacityDTO(classes)
+	view, err := dto.FromClassPresentations(classItems)
 	if err != nil {
 		viewErrs.HandleError(ginCtx, err, http.StatusInternalServerError)
 
@@ -50,7 +50,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	}
 
 	ginCtx.HTML(http.StatusOK, "index.html", gin.H{
-		"Classes":    classesView,
+		"Classes":    view,
 		"IsVacation": h.isVacation,
 	})
 }

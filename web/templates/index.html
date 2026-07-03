@@ -28,7 +28,7 @@
             </div>
         {{ end }}
         {{ range .Classes }}
-        <div class="class-container {{ if eq .StartDate "21-06-2026" }}special-class{{ end }}">
+        <div class="class-container">
             <form id="form-{{ .ID }}">
                 <div class="class-info">
                     <div class="class-title"
@@ -54,7 +54,19 @@
                         </tr>
                         <tr>
                             <td style="font-weight:300;">gdzie:</td>
-                            <td style="font-weight:300;">{{ .Location }}</td>
+                            <td style="font-weight:300;">
+                                <a
+                                    href="{{ .LocationLink }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style="
+                                        color: inherit;
+                                        text-decoration-color: #cfcfcf;
+                                    "
+                                >
+                                    {{ .Location }}
+                                </a>
+                            </td>
                         </tr>
                         <tr>
                             <td style="font-weight:300;">wolne miejsca:</td>

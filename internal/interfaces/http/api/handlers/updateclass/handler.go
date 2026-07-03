@@ -3,11 +3,10 @@ package updateclass
 import (
 	"net/http"
 
-	"main/internal/domain/models"
+	appModels "main/internal/application/models"
 	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
-	sharedDTO "main/internal/interfaces/http/shared/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -55,7 +54,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	ctx := ginCtx.Request.Context()
 
-	update := models.UpdateClass{
+	update := appModels.UpdateClassCommand{
 		StartTime:   dtoUpdateClass.StartTime,
 		ClassLevel:  dtoUpdateClass.ClassLevel,
 		ClassName:   dtoUpdateClass.ClassName,
@@ -63,19 +62,19 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		Location:    dtoUpdateClass.Location,
 	}
 
-	updatedClass, err := h.classesService.UpdateClass(ctx, parsedUUID, update)
+	classUpdateCommand, err := h.classesService.UpdateClass(ctx, parsedUUID, update)
 	if err != nil {
 		h.apiErrorHandler.Handle(ginCtx, err)
 
 		return
 	}
 
-	resp, err := sharedDTO.ToClassDTO(updatedClass)
+	response, err := dto.FromClassData(classUpdateCommand)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
 
 		return
 	}
 
-	ginCtx.JSON(http.StatusOK, resp)
+	ginCtx.JSON(http.StatusOK, response)
 }

@@ -203,7 +203,7 @@ func (n *notifier) NotifyBookingCancellation(params models.NotifierParams) error
 }
 
 func (n *notifier) NotifyClassUpdate(
-	params models.NotifierParams, msg string,
+	params models.NotifierParams, msg, cancellationLink string,
 ) error {
 	classStartTimeDetails, err := getClassStartTimeDetails(params.StartTime)
 	if err != nil {
@@ -211,8 +211,9 @@ func (n *notifier) NotifyClassUpdate(
 	}
 
 	tmplData := notifierModels.ClassUpdateTmplData{
-		BaseTmplData: n.getBaseTmplData(params, classStartTimeDetails),
-		Message:      msg,
+		BaseTmplData:     n.getBaseTmplData(params, classStartTimeDetails),
+		Message:          msg,
+		CancellationLink: cancellationLink,
 	}
 
 	tmpl, err := template.ParseFiles(n.classUpdateTmplPath, n.classTmplPath)
@@ -411,7 +412,8 @@ func (n *notifier) getBaseTmplData(
 		Hour:               classStartTimeDetails.startHour,
 		WeekDay:            classStartTimeDetails.weekDayInPolish,
 		Date:               classStartTimeDetails.startDate,
-		Location:           params.Location,
+		LocationName:       params.LocationName,
+		LocationLink:       params.LocationLink,
 		Signature:          n.signature,
 	}
 }

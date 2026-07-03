@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"main/internal/application/location"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
@@ -19,12 +20,13 @@ type IReminderService interface {
 }
 
 type service struct {
-	unitOfWork   repositories.IUnitOfWork
-	classesRepo  repositories.IClasses
-	bookingsRepo repositories.IBookings
-	notifier     notifier.INotifier
-	passManager  services.IPassManager
-	domainAddr   string
+	unitOfWork       repositories.IUnitOfWork
+	classesRepo      repositories.IClasses
+	bookingsRepo     repositories.IBookings
+	notifier         notifier.INotifier
+	passManager      services.IPassManager
+	locationResolver location.IResolver
+	domainAddr       string
 }
 
 func New(
@@ -33,15 +35,17 @@ func New(
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
 	passManager services.IPassManager,
+	locationResolver location.IResolver,
 	domainAddr string,
 ) *service {
 	return &service{
-		unitOfWork:   unitOfWork,
-		classesRepo:  classesRepo,
-		bookingsRepo: bookingsRepo,
-		notifier:     notifier,
-		passManager:  passManager,
-		domainAddr:   domainAddr,
+		unitOfWork:       unitOfWork,
+		classesRepo:      classesRepo,
+		bookingsRepo:     bookingsRepo,
+		notifier:         notifier,
+		passManager:      passManager,
+		locationResolver: locationResolver,
+		domainAddr:       domainAddr,
 	}
 }
 
@@ -126,6 +130,11 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 			return fmt.Errorf("could not update booking %v with %v: %w", booking.ID, update, err)
 		}
 
+		locationLink, err := s.locationResolver.GetLink(booking.Class.Location)
+		if err != nil {
+			return fmt.Errorf("could not get location link for %v: %w", booking.Class.Location, err)
+		}
+
 		notifierParams := models.NotifierParams{
 			RecipientEmail:     booking.Email,
 			RecipientFirstName: booking.FirstName,
@@ -133,7 +142,8 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 			ClassName:          booking.Class.ClassName,
 			ClassLevel:         booking.Class.ClassLevel,
 			StartTime:          booking.Class.StartTime,
-			Location:           booking.Class.Location,
+			LocationName:       booking.Class.Location,
+			LocationLink:       locationLink,
 		}
 
 		if booking.Pass.Exists() {

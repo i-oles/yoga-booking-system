@@ -7,7 +7,6 @@ import (
 	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
-	sharedDTO "main/internal/interfaces/http/shared/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -62,12 +61,12 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	classesResp, err := sharedDTO.ToClassesDTO(createdClasses)
+	response, err := dto.FromClasses(createdClasses)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
 
 		return
 	}
 
-	ginCtx.JSON(http.StatusCreated, classesResp)
+	ginCtx.JSON(http.StatusCreated, response)
 }

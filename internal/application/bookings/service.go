@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"main/internal/application/location"
+	appModels "main/internal/application/models"
 	viewErrors "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
@@ -22,11 +24,12 @@ const (
 )
 
 type service struct {
-	unitOfWork   repositories.IUnitOfWork
-	bookingsRepo repositories.IBookings
-	passManager  services.IPassManager
-	notifier     notifier.INotifier
-	domainAddr   string
+	unitOfWork       repositories.IUnitOfWork
+	bookingsRepo     repositories.IBookings
+	passManager      services.IPassManager
+	notifier         notifier.INotifier
+	loactionResolver location.IResolver
+	domainAddr       string
 }
 
 func NewService(
@@ -34,18 +37,20 @@ func NewService(
 	bookingsRepo repositories.IBookings,
 	passManager services.IPassManager,
 	notifier notifier.INotifier,
+	locationResolver location.IResolver,
 	domainAddr string,
 ) *service {
 	return &service{
-		unitOfWork:   unitOfWork,
-		bookingsRepo: bookingsRepo,
-		passManager:  passManager,
-		notifier:     notifier,
-		domainAddr:   domainAddr,
+		unitOfWork:       unitOfWork,
+		bookingsRepo:     bookingsRepo,
+		passManager:      passManager,
+		notifier:         notifier,
+		loactionResolver: locationResolver,
+		domainAddr:       domainAddr,
 	}
 }
 
-func (s *service) CreateBooking(ctx context.Context, token string) (models.Class, error) {
+func (s *service) CreateBooking(ctx context.Context, token string) (appModels.BookingCreation, error) {
 	var (
 		pendingBooking models.PendingBooking
 		bookingID      uuid.UUID
@@ -145,18 +150,33 @@ func (s *service) CreateBooking(ctx context.Context, token string) (models.Class
 		return nil
 	})
 	if err != nil {
-		return models.Class{}, fmt.Errorf("create booking transaction failed: %w", err)
+		return appModels.BookingCreation{}, fmt.Errorf("create booking transaction failed: %w", err)
+	}
+
+	locationLink, err := s.loactionResolver.GetLink(pendingBooking.Class.Location)
+	if err != nil {
+		return appModels.BookingCreation{}, fmt.Errorf("could not resolve location link for location: %s", pendingBooking.Class.Location)
 	}
 
 	err = s.sendConfirmation(
-		pendingBooking, passSlots, token, bookingID,
+		pendingBooking, passSlots, locationLink, token, bookingID,
 	)
 	if err != nil {
-		return models.Class{},
+		return appModels.BookingCreation{},
 			fmt.Errorf("could not send confirmation email %s: %w", pendingBooking.Email, err)
 	}
 
-	return pendingBooking.Class, nil
+	return appModels.BookingCreation{
+		Class: appModels.ClassPresentation{
+			ID:           pendingBooking.Class.ID,
+			StartTime:    pendingBooking.Class.StartTime,
+			ClassLevel:   pendingBooking.Class.ClassLevel,
+			ClassName:    pendingBooking.Class.ClassName,
+			MaxCapacity:  pendingBooking.Class.MaxCapacity,
+			Location:     pendingBooking.Class.Location,
+			LocationLink: locationLink,
+		},
+	}, nil
 }
 
 func (s *service) checkClassAvailability(
@@ -183,6 +203,7 @@ func (s *service) checkClassAvailability(
 func (s *service) sendConfirmation(
 	pendingBooking models.PendingBooking,
 	passSlots []models.PassSlot,
+	locationLink string,
 	token string,
 	bookingID uuid.UUID,
 ) error {
@@ -193,7 +214,8 @@ func (s *service) sendConfirmation(
 		ClassName:          pendingBooking.Class.ClassName,
 		ClassLevel:         pendingBooking.Class.ClassLevel,
 		StartTime:          pendingBooking.Class.StartTime,
-		Location:           pendingBooking.Class.Location,
+		LocationName:       pendingBooking.Class.Location,
+		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
 
@@ -251,6 +273,11 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		return fmt.Errorf("cancel booking transaction failed: %w", err)
 	}
 
+	locationLink, err := s.loactionResolver.GetLink(booking.Class.Location)
+	if err != nil {
+		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
+	}
+
 	notifierParams := models.NotifierParams{
 		RecipientFirstName: booking.FirstName,
 		RecipientLastName:  booking.LastName,
@@ -258,7 +285,8 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		ClassName:          booking.Class.ClassName,
 		ClassLevel:         booking.Class.ClassLevel,
 		StartTime:          booking.Class.StartTime,
-		Location:           booking.Class.Location,
+		LocationName:       booking.Class.Location,
+		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
 
@@ -300,25 +328,40 @@ func (s *service) ensureBookingCancellationAllowed(
 	return booking, nil
 }
 
-func (s *service) GetBookingForCancellation(
+func (s *service) GetBookingCancellationForm(
 	ctx context.Context, bookingID uuid.UUID, token string,
-) (models.Booking, error) {
+) (appModels.BookingCancellationForm, error) {
 	booking, err := s.bookingsRepo.GetByID(ctx, bookingID)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
-			return models.Booking{}, viewErrors.ErrBookingNotFound(
+			return appModels.BookingCancellationForm{}, viewErrors.ErrBookingNotFound(
 				fmt.Errorf("booking with id %s not found: %w", bookingID, err),
 			)
 		}
 
-		return models.Booking{}, fmt.Errorf("could not get booking for id %s: %w", bookingID, err)
+		return appModels.BookingCancellationForm{},
+			fmt.Errorf("could not get booking for id %s: %w", bookingID, err)
 	}
 
 	if booking.ConfirmationToken != token {
-		return models.Booking{}, viewErrors.ErrInvalidCancellationLink(err)
+		return appModels.BookingCancellationForm{}, viewErrors.ErrInvalidCancellationLink(err)
 	}
 
-	return booking, nil
+	class := appModels.BookingCancellationClass{
+		ID:         booking.Class.ID,
+		StartTime:  booking.Class.StartTime,
+		ClassLevel: booking.Class.ClassLevel,
+		ClassName:  booking.Class.ClassName,
+		Location:   booking.Class.Location,
+	}
+
+	cancellationForm := appModels.BookingCancellationForm{
+		Class:             class,
+		BookingID:         booking.ID,
+		ConfirmationToken: booking.ConfirmationToken,
+	}
+
+	return cancellationForm, nil
 }
 
 func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error {
@@ -356,6 +399,11 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		return fmt.Errorf("delete booking transaction failed: %w", err)
 	}
 
+	locationLink, err := s.loactionResolver.GetLink(booking.Class.Location)
+	if err != nil {
+		return fmt.Errorf("could not resolve location link for location: %s", booking.Class.Location)
+	}
+
 	notifierParams := models.NotifierParams{
 		RecipientFirstName: booking.FirstName,
 		RecipientLastName:  booking.LastName,
@@ -363,7 +411,8 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		ClassName:          booking.Class.ClassName,
 		ClassLevel:         booking.Class.ClassLevel,
 		StartTime:          booking.Class.StartTime,
-		Location:           booking.Class.Location,
+		LocationName:       booking.Class.Location,
+		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
 

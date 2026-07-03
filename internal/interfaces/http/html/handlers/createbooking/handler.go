@@ -35,14 +35,14 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	ctx := ginCtx.Request.Context()
 
-	class, err := h.bookingsService.CreateBooking(ctx, form.Token)
+	bookingCreation, err := h.bookingsService.CreateBooking(ctx, form.Token)
 	if err != nil {
 		h.viewErrorHandler.Handle(ginCtx, "err.tmpl", err)
 
 		return
 	}
 
-	view, err := dto.ToClassView(class)
+	view, err := dto.FromClassPresentation(bookingCreation.Class)
 	if err != nil {
 		viewErrs.HandleError(ginCtx, err, http.StatusInternalServerError)
 
