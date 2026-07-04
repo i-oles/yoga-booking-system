@@ -214,7 +214,7 @@ func (s *service) sendConfirmation(
 		ClassName:          pendingBooking.Class.ClassName,
 		ClassLevel:         pendingBooking.Class.ClassLevel,
 		StartTime:          pendingBooking.Class.StartTime,
-		LocationName:       pendingBooking.Class.Location,
+		Location:           pendingBooking.Class.Location,
 		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
@@ -285,7 +285,7 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		ClassName:          booking.Class.ClassName,
 		ClassLevel:         booking.Class.ClassLevel,
 		StartTime:          booking.Class.StartTime,
-		LocationName:       booking.Class.Location,
+		Location:           booking.Class.Location,
 		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
@@ -411,7 +411,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		ClassName:          booking.Class.ClassName,
 		ClassLevel:         booking.Class.ClassLevel,
 		StartTime:          booking.Class.StartTime,
-		LocationName:       booking.Class.Location,
+		Location:           booking.Class.Location,
 		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}

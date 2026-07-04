@@ -9,7 +9,7 @@ type BaseTmplData struct {
 	WeekDay            string
 	Hour               string
 	Date               string
-	LocationName       string
+	Location           string
 	LocationLink       string
 	Signature          string
 }

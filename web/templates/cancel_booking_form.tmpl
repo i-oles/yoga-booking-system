@@ -16,33 +16,30 @@
         <div style="margin-bottom: 30px;" class="class-info">
             <div class="class-title"
                 style="font-weight: 600; font-size: 14px; color: black; opacity: 0.6; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                {{ .BookingCancellationFormView.ClassView.ClassName }}
+                {{ .Class.ClassName }}
             </div>
             <table style="border-collapse: collapse; margin-top: 15px;">
                 <tr>
                     <td style="font-weight:300;">poziom:</td>
-                    <td style="font-weight:500;">{{ .BookingCancellationFormView.ClassView.ClassLevel }}</td>
+                    <td style="font-weight:500;">{{ .Class.ClassLevel }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight:300;">dzień:</td>
-                    <td style="font-weight:500;">{{ .BookingCancellationFormView.ClassView.WeekDay }}</td>
+                    <td style="font-weight:500;">{{ .Class.WeekDay }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight:300;">data:</td>
-                    <td style="font-weight:500;">{{ .BookingCancellationFormView.ClassView.StartDate }}</td>
+                    <td style="font-weight:500;">{{ .Class.StartDate }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight:300;">godzina:</td>
-                    <td style="font-weight:500;">{{ .BookingCancellationFormView.ClassView.StartHour }}</td>
+                    <td style="font-weight:500;">{{ .Class.StartHour }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight:300;">gdzie:</td>
-                    <td style="font-weight:500;">{{ .BookingCancellationFormView.ClassView.Location }}</td>
+                    <td style="font-weight:500;">{{ .Class.Location }}</td>
                 </tr>
             </table>
-            <div class="err-msg">
-                {{ .Error }}
-            </div>
             <button
                 type="submit"
                 class="btn-cancel"

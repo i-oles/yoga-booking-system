@@ -412,7 +412,7 @@ func (n *notifier) getBaseTmplData(
 		Hour:               classStartTimeDetails.startHour,
 		WeekDay:            classStartTimeDetails.weekDayInPolish,
 		Date:               classStartTimeDetails.startDate,
-		LocationName:       params.LocationName,
+		Location:           params.Location,
 		LocationLink:       params.LocationLink,
 		Signature:          n.signature,
 	}

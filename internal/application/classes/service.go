@@ -171,7 +171,7 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 				ClassName:          class.ClassName,
 				ClassLevel:         class.ClassLevel,
 				StartTime:          class.StartTime,
-				LocationName:       class.Location,
+				Location:           class.Location,
 				LocationLink:       locationLink,
 			}
 
@@ -299,7 +299,7 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 			ClassName:          updatedClass.ClassName,
 			ClassLevel:         updatedClass.ClassLevel,
 			StartTime:          updatedClass.StartTime,
-			LocationName:       updatedClass.Location,
+			Location:           updatedClass.Location,
 			LocationLink:       locationLink,
 		}
 

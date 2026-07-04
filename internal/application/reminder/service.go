@@ -142,7 +142,7 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 			ClassName:          booking.Class.ClassName,
 			ClassLevel:         booking.Class.ClassLevel,
 			StartTime:          booking.Class.StartTime,
-			LocationName:       booking.Class.Location,
+			Location:           booking.Class.Location,
 			LocationLink:       locationLink,
 		}
 
