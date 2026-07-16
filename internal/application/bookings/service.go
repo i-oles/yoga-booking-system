@@ -155,7 +155,7 @@ func (s *service) CreateBooking(ctx context.Context, token string) (appModels.Bo
 
 	locationLink, err := s.loactionResolver.GetLink(pendingBooking.Class.Location)
 	if err != nil {
-		return appModels.BookingCreation{}, fmt.Errorf("could not resolve location link for location: %s", pendingBooking.Class.Location)
+		return appModels.BookingCreation{}, fmt.Errorf("could not resolve location link for: %s", pendingBooking.Class.Location)
 	}
 
 	err = s.sendConfirmation(
@@ -401,7 +401,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 
 	locationLink, err := s.loactionResolver.GetLink(booking.Class.Location)
 	if err != nil {
-		return fmt.Errorf("could not resolve location link for location: %s", booking.Class.Location)
+		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
 	notifierParams := models.NotifierParams{
