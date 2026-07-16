@@ -27,7 +27,19 @@
                 </tr>
                 <tr>
                     <td style="font-weight:300; padding: 6px 0; color: #666666;">gdzie:</td>
-                    <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .BaseTmplData.Location }}</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">
+                        <a
+                            href="{{ .BaseTmplData.LocationLink }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="
+                                color: inherit;
+                                text-decoration-color: #cfcfcf;
+                            "
+                        >
+                            {{ .BaseTmplData.Location }}
+                        </a>
+                    </td>
                 </tr>
             </table>
         </div>

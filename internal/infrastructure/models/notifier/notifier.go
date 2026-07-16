@@ -10,12 +10,14 @@ type BaseTmplData struct {
 	Hour               string
 	Date               string
 	Location           string
+	LocationLink       string
 	Signature          string
 }
 
 type ClassUpdateTmplData struct {
-	BaseTmplData BaseTmplData
-	Message      string
+	BaseTmplData     BaseTmplData
+	CancellationLink string
+	Message          string
 }
 
 type ClassCancellationTmplData struct {

@@ -71,10 +71,6 @@ h1 {
     min-width: 190px;
 }
 
-.special-class {
-    background-color: #fff9db;
-}
-
 .cancellation-card,
 .error-card,
 .confirmation-card {

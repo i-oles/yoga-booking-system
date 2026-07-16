@@ -12,6 +12,7 @@ type NotifierParams struct {
 	ClassLevel         string
 	StartTime          time.Time
 	Location           string
+	LocationLink       string
 	PassSlots          []PassSlot
 }
 

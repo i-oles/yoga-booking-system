@@ -13,6 +13,7 @@ import (
 
 	"main/internal/application/bookings"
 	"main/internal/application/classes"
+	"main/internal/application/location"
 	"main/internal/application/passes"
 	"main/internal/application/pendingbookings"
 	"main/internal/application/reminder"
@@ -23,6 +24,9 @@ import (
 	dbModels "main/internal/infrastructure/models/db"
 	"main/internal/infrastructure/notifier/gmail"
 	sqliteRepo "main/internal/infrastructure/repository/sqlite"
+	"main/internal/infrastructure/sender"
+	gmailSender "main/internal/infrastructure/sender/gmail"
+	"main/internal/infrastructure/sender/memory"
 	apiErrs "main/internal/interfaces/http/api/errs"
 	apiErrHandler "main/internal/interfaces/http/api/errs/handler"
 	"main/internal/interfaces/http/api/errs/logging"
@@ -43,6 +47,7 @@ import (
 	"main/internal/interfaces/http/html/handlers/cancelbooking"
 	"main/internal/interfaces/http/html/handlers/cancelbookingform"
 	"main/internal/interfaces/http/html/handlers/createbooking"
+	"main/internal/interfaces/http/html/handlers/emails"
 	"main/internal/interfaces/http/html/handlers/errorpage"
 	"main/internal/interfaces/http/html/handlers/home"
 	creatependingbooking "main/internal/interfaces/http/html/handlers/pendingbooking"
@@ -68,6 +73,7 @@ type Components struct {
 	contactsRepo           repositories.IContacts
 	reminder               reminder.IReminderService
 	database               *gorm.DB
+	storage                *memory.Storage
 }
 
 func main() {
@@ -91,6 +97,7 @@ func main() {
 		components.bookingsRepo,
 		components.pendingBookingsRepo,
 		components.contactsRepo,
+		components.storage,
 		cfg,
 	)
 
@@ -167,11 +174,27 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	contactsRepo := sqliteRepo.NewContactsRepo(database)
 
 	tokenGenerator := token.NewGenerator()
-	emailNotifier := gmail.NewNotifier(
+
+	var sender sender.IEmailSender
+
+	sender = gmailSender.NewSender(
 		cfg.Notifier.Host,
 		cfg.Notifier.Port,
 		cfg.Notifier.Login,
 		cfg.Notifier.Password,
+	)
+
+	memoryStorage := memory.Storage{
+		Views: make([]string, 0),
+	}
+
+	if cfg.MockEmailSender {
+		sender = memory.NewSender(&memoryStorage)
+	}
+
+	emailNotifier := gmail.NewNotifier(
+		sender,
+		cfg.Notifier.Login,
 		cfg.Notifier.Signature,
 		cfg.BaseNotifierTmplPath,
 	)
@@ -179,18 +202,23 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	unitOfWork := sqliteRepo.NewUnitOfWork(database)
 	passManager := services.PassManager{}
 
+	locationResolver := location.NewMemoryResolver()
+
 	classesService := classes.NewService(
 		classesRepo,
 		bookingsRepo,
 		unitOfWork,
 		&passManager,
 		emailNotifier,
+		locationResolver,
+		cfg.DomainAddr,
 	)
 	bookingsService := bookings.NewService(
 		unitOfWork,
 		bookingsRepo,
 		&passManager,
 		emailNotifier,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 
@@ -209,6 +237,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		bookingsRepo,
 		emailNotifier,
 		&passManager,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 
@@ -223,6 +252,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		contactsRepo:           contactsRepo,
 		reminder:               reminder,
 		database:               database,
+		storage:                &memoryStorage,
 	}, nil
 }
 
@@ -234,6 +264,7 @@ func setupRouter(
 	bookingsRepo repositories.IBookings,
 	pendingBookingsRepo repositories.IPendingBookings,
 	contactsRepo repositories.IContacts,
+	storage *memory.Storage,
 	cfg *configuration.Configuration,
 ) *gin.Engine {
 	router := gin.Default()
@@ -258,6 +289,7 @@ func setupRouter(
 	pendingBookingFormHandler := pendingbookingform.NewHandler()
 	cancelBookingFormHandler := cancelbookingform.NewHandler(bookingsService, viewErrorHandler)
 	errorPageHandler := errorpage.NewHandler()
+	emailsHander := emails.NewHandler(storage)
 
 	{
 		// home
@@ -277,6 +309,11 @@ func setupRouter(
 
 		requestLimiter := rate.NewLimiter(rate.Limit(1), 2)
 		api.POST("/pending_bookings", rateLimiterMiddleware(requestLimiter), createPendingBookingHandler.Handle)
+
+		// testing
+		if cfg.MockEmailSender {
+			api.GET("/emails", emailsHander.Handle)
+		}
 	}
 
 	var apiErrorHandler apiErrs.IErrorHandler

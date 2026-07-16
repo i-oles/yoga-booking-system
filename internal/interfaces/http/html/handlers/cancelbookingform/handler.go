@@ -52,21 +52,23 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	ctx := ginCtx.Request.Context()
 
-	booking, err := h.bookingService.GetBookingForCancellation(ctx, bookingID, form.Token)
+	bookingCancellationForm, err := h.bookingService.GetBookingCancellationForm(
+		ctx,
+		bookingID,
+		form.Token,
+	)
 	if err != nil {
 		h.viewErrorHandler.Handle(ginCtx, "err.tmpl", err)
 
 		return
 	}
 
-	classView, err := dto.ToClassView(booking.Class)
+	view, err := dto.ToBookingCancellationFormView(bookingCancellationForm)
 	if err != nil {
 		viewErrs.HandleError(ginCtx, err, http.StatusInternalServerError)
 
 		return
 	}
 
-	ginCtx.HTML(http.StatusOK, "cancel_booking_form.tmpl", gin.H{
-		"Class": classView, "BookingID": bookingID, "ConfirmationToken": booking.ConfirmationToken,
-	})
+	ginCtx.HTML(http.StatusOK, "cancel_booking_form.tmpl", view)
 }

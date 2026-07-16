@@ -5,22 +5,21 @@ import (
 	"time"
 
 	domainModels "main/internal/domain/models"
-	"main/internal/interfaces/http/shared/dto"
 	"main/pkg/converter"
 
 	"github.com/google/uuid"
 )
 
 type BookingResponse struct {
-	ID        uuid.UUID    `json:"id"`
-	ClassID   uuid.UUID    `json:"class_id"`
-	PassID    *int         `json:"pass_id,omitempty"`
-	Pass      *PassDTO     `json:"pass,omitempty"`
-	FirstName string       `json:"first_name"`
-	LastName  string       `json:"last_name"`
-	Email     string       `json:"email"`
-	CreatedAt time.Time    `json:"created_at"`
-	Class     dto.ClassDTO `json:"class"`
+	ID        uuid.UUID     `json:"id"`
+	ClassID   uuid.UUID     `json:"class_id"`
+	PassID    *int          `json:"pass_id,omitempty"`
+	Pass      *PassDTO      `json:"pass,omitempty"`
+	FirstName string        `json:"first_name"`
+	LastName  string        `json:"last_name"`
+	Email     string        `json:"email"`
+	CreatedAt time.Time     `json:"created_at"`
+	Class     ClassResponse `json:"class"`
 }
 
 func ToBookingResponse(booking domainModels.Booking) (BookingResponse, error) {
@@ -29,7 +28,7 @@ func ToBookingResponse(booking domainModels.Booking) (BookingResponse, error) {
 		return BookingResponse{}, fmt.Errorf("could not convert createdAt to warsaw time: %w", err)
 	}
 
-	class, err := dto.ToClassDTO(booking.Class)
+	class, err := ToClassResponse(booking.Class)
 	if err != nil {
 		return BookingResponse{}, fmt.Errorf("could not cast class to dto class: %w", err)
 	}
