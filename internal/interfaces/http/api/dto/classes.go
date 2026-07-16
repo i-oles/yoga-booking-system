@@ -130,7 +130,9 @@ func ToClassDataReponses(classes []appModels.ClassData) ([]ClassDataResponse, er
 	return classItemsResponse, nil
 }
 
-func ToClassDataResponseFromPresentation(class appModels.ClassPresentation) (ClassDataResponse, error) {
+func ToClassDataResponseFromPresentation(
+	class appModels.ClassPresentation,
+) (ClassDataResponse, error) {
 	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
 		return ClassDataResponse{}, fmt.Errorf("error while converting class time: %w", err)
@@ -149,7 +151,9 @@ func ToClassDataResponseFromPresentation(class appModels.ClassPresentation) (Cla
 	}, nil
 }
 
-func ToClassDataResponsesFromPresentations(classes []appModels.ClassPresentation) ([]ClassDataResponse, error) {
+func ToClassDataResponsesFromPresentations(
+	classes []appModels.ClassPresentation,
+) ([]ClassDataResponse, error) {
 	classDatasResponse := make([]ClassDataResponse, len(classes))
 
 	for idx, class := range classes {
