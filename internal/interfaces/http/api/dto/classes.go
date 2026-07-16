@@ -7,7 +7,6 @@ import (
 	appModels "main/internal/application/models"
 	"main/internal/domain/models"
 	"main/pkg/converter"
-	"main/pkg/translator"
 
 	"github.com/google/uuid"
 )
@@ -52,22 +51,17 @@ type ClassResponse struct {
 	Location    string    `json:"location"`
 }
 
-func FromClass(class models.Class) (ClassResponse, error) {
-	warsawTime, err := converter.ConvertToWarsawTime(class.StartTime)
+func ToClassResponse(class models.Class) (ClassResponse, error) {
+	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
-		return ClassResponse{}, fmt.Errorf("error while converting time to warsaw time: %w", err)
-	}
-
-	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
-	if err != nil {
-		return ClassResponse{}, fmt.Errorf("error while translating week day to polish: %w", err)
+		return ClassResponse{}, fmt.Errorf("error while converting class time: %w", err)
 	}
 
 	return ClassResponse{
 		ID:          class.ID,
-		WeekDay:     weekday,
-		StartDate:   warsawTime.Format(converter.DateLayout),
-		StartHour:   warsawTime.Format(converter.HourLayout),
+		WeekDay:     weekDay,
+		StartDate:   startDate,
+		StartHour:   startHour,
 		ClassLevel:  class.ClassLevel,
 		ClassName:   class.ClassName,
 		MaxCapacity: class.MaxCapacity,
@@ -75,11 +69,11 @@ func FromClass(class models.Class) (ClassResponse, error) {
 	}, nil
 }
 
-func FromClasses(classes []models.Class) ([]ClassResponse, error) {
+func ToClassesResponse(classes []models.Class) ([]ClassResponse, error) {
 	classesResponse := make([]ClassResponse, len(classes))
 
 	for idx, class := range classes {
-		classResponse, err := FromClass(class)
+		classResponse, err := ToClassResponse(class)
 		if err != nil {
 			return nil, fmt.Errorf("could not convert class to classResponse: %w", err)
 		}
@@ -102,22 +96,17 @@ type ClassDataResponse struct {
 	Location        string    `json:"location"`
 }
 
-func FromClassData(class appModels.ClassData) (ClassDataResponse, error) {
-	warsawTime, err := converter.ConvertToWarsawTime(class.StartTime)
+func ToClassDataResponse(class appModels.ClassData) (ClassDataResponse, error) {
+	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
-		return ClassDataResponse{}, fmt.Errorf("error while converting time to warsaw time: %w", err)
-	}
-
-	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
-	if err != nil {
-		return ClassDataResponse{}, fmt.Errorf("error while translating week day to polish: %w", err)
+		return ClassDataResponse{}, fmt.Errorf("error while converting class time: %w", err)
 	}
 
 	return ClassDataResponse{
 		ID:              class.ID,
-		WeekDay:         weekday,
-		StartDate:       warsawTime.Format(converter.DateLayout),
-		StartHour:       warsawTime.Format(converter.HourLayout),
+		WeekDay:         weekDay,
+		StartDate:       startDate,
+		StartHour:       startHour,
 		ClassLevel:      class.ClassLevel,
 		ClassName:       class.ClassName,
 		CurrentCapacity: class.CurrentCapacity,
@@ -126,11 +115,11 @@ func FromClassData(class appModels.ClassData) (ClassDataResponse, error) {
 	}, nil
 }
 
-func FromClassDatas(classes []appModels.ClassData) ([]ClassDataResponse, error) {
+func ToClassDataReponses(classes []appModels.ClassData) ([]ClassDataResponse, error) {
 	classItemsResponse := make([]ClassDataResponse, len(classes))
 
 	for idx, item := range classes {
-		classResponse, err := FromClassData(item)
+		classResponse, err := ToClassDataResponse(item)
 		if err != nil {
 			return nil, fmt.Errorf("could not convert classListItem to classListResponse: %w", err)
 		}
@@ -141,22 +130,17 @@ func FromClassDatas(classes []appModels.ClassData) ([]ClassDataResponse, error) 
 	return classItemsResponse, nil
 }
 
-func FromClassPresentation(class appModels.ClassPresentation) (ClassDataResponse, error) {
-	warsawTime, err := converter.ConvertToWarsawTime(class.StartTime)
+func ToClassDataResponseFromPresentation(class appModels.ClassPresentation) (ClassDataResponse, error) {
+	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
-		return ClassDataResponse{}, fmt.Errorf("error while converting time to warsaw time: %w", err)
-	}
-
-	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
-	if err != nil {
-		return ClassDataResponse{}, fmt.Errorf("error while translating week day to polish: %w", err)
+		return ClassDataResponse{}, fmt.Errorf("error while converting class time: %w", err)
 	}
 
 	return ClassDataResponse{
 		ID:              class.ID,
-		WeekDay:         weekday,
-		StartDate:       warsawTime.Format(converter.DateLayout),
-		StartHour:       warsawTime.Format(converter.HourLayout),
+		WeekDay:         weekDay,
+		StartDate:       startDate,
+		StartHour:       startHour,
 		ClassLevel:      class.ClassLevel,
 		ClassName:       class.ClassName,
 		CurrentCapacity: class.CurrentCapacity,
@@ -165,11 +149,11 @@ func FromClassPresentation(class appModels.ClassPresentation) (ClassDataResponse
 	}, nil
 }
 
-func FromClassPresentations(classes []appModels.ClassPresentation) ([]ClassDataResponse, error) {
+func ToClassDataResponsesFromPresentations(classes []appModels.ClassPresentation) ([]ClassDataResponse, error) {
 	classDatasResponse := make([]ClassDataResponse, len(classes))
 
 	for idx, class := range classes {
-		classResponse, err := FromClassPresentation(class)
+		classResponse, err := ToClassDataResponseFromPresentation(class)
 		if err != nil {
 			return nil, fmt.Errorf("could not convert classListItem to classListResponse: %w", err)
 		}

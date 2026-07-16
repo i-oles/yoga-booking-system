@@ -5,7 +5,6 @@ import (
 
 	appModels "main/internal/application/models"
 	"main/pkg/converter"
-	"main/pkg/translator"
 
 	"github.com/google/uuid"
 )
@@ -23,24 +22,18 @@ type ClassView struct {
 	LocationLink    string    `json:"location_link"`
 }
 
-func FromClassPresentation(class appModels.ClassPresentation) (ClassView, error) {
-	warsawTime, err := converter.ConvertToWarsawTime(class.StartTime)
+func ToClassView(class appModels.ClassPresentation) (ClassView, error) {
+	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
 		return ClassView{},
-			fmt.Errorf("error while converting time to warsaw time: %w", err)
-	}
-
-	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
-	if err != nil {
-		return ClassView{},
-			fmt.Errorf("error while translating week day to polish: %w", err)
+			fmt.Errorf("error while converting to class time: %w", err)
 	}
 
 	return ClassView{
 		ID:              class.ID,
-		WeekDay:         weekday,
-		StartDate:       warsawTime.Format(converter.DateLayout),
-		StartHour:       warsawTime.Format(converter.HourLayout),
+		WeekDay:         weekDay,
+		StartDate:       startDate,
+		StartHour:       startHour,
 		ClassLevel:      class.ClassLevel,
 		ClassName:       class.ClassName,
 		CurrentCapacity: class.CurrentCapacity,
@@ -50,11 +43,11 @@ func FromClassPresentation(class appModels.ClassPresentation) (ClassView, error)
 	}, nil
 }
 
-func FromClassPresentations(classes []appModels.ClassPresentation) ([]ClassView, error) {
+func ToClassViews(classes []appModels.ClassPresentation) ([]ClassView, error) {
 	classesView := make([]ClassView, len(classes))
 
 	for idx, class := range classes {
-		classView, err := FromClassPresentation(class)
+		classView, err := ToClassView(class)
 		if err != nil {
 			return nil, fmt.Errorf("could not convert classListItem to ClassView : %w", err)
 		}
@@ -75,26 +68,20 @@ type BookingCancellationClassView struct {
 	Location   string    `json:"location"`
 }
 
-func FromBookingCancellationClass(
+func ToBookingCancellationClassView(
 	class appModels.BookingCancellationClass,
 ) (BookingCancellationClassView, error) {
-	warsawTime, err := converter.ConvertToWarsawTime(class.StartTime)
+	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
 		return BookingCancellationClassView{},
-			fmt.Errorf("error while converting time to warsaw time: %w", err)
-	}
-
-	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
-	if err != nil {
-		return BookingCancellationClassView{},
-			fmt.Errorf("error while translating week day to polish: %w", err)
+			fmt.Errorf("error while converting class time: %w", err)
 	}
 
 	return BookingCancellationClassView{
 		ID:         class.ID,
-		WeekDay:    weekday,
-		StartDate:  warsawTime.Format(converter.DateLayout),
-		StartHour:  warsawTime.Format(converter.HourLayout),
+		WeekDay:    weekDay,
+		StartDate:  startDate,
+		StartHour:  startHour,
 		ClassLevel: class.ClassLevel,
 		ClassName:  class.ClassName,
 		Location:   class.Location,

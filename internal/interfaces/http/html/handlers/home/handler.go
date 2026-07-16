@@ -42,7 +42,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	view, err := dto.FromClassPresentations(classItems)
+	views, err := dto.ToClassViews(classItems)
 	if err != nil {
 		viewErrs.HandleError(ginCtx, err, http.StatusInternalServerError)
 
@@ -50,7 +50,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	}
 
 	ginCtx.HTML(http.StatusOK, "index.html", gin.H{
-		"Classes":    view,
+		"Classes":    views,
 		"IsVacation": h.isVacation,
 	})
 }

@@ -1,7 +1,6 @@
 package gmail
 
 import (
-	"crypto/tls"
 	"fmt"
 	"html/template"
 	"strings"
@@ -9,17 +8,16 @@ import (
 
 	"main/internal/domain/models"
 	notifierModels "main/internal/infrastructure/models/notifier"
+	"main/internal/infrastructure/sender"
 	"main/pkg/converter"
 	"main/pkg/translator"
-
-	"gopkg.in/gomail.v2"
 )
 
 const PassLabel = "KARNET"
 
 type notifier struct {
-	dialer                             *gomail.Dialer
-	login                              string
+	sender                             sender.IEmailSender
+	ownerEmail                         string
 	bookingConfirmationRequestTmplPath string
 	bookingConfirmationTmplPath        string
 	classCancellationTmplPath          string
@@ -33,23 +31,14 @@ type notifier struct {
 }
 
 func NewNotifier(
-	host string,
-	port int,
-	login string,
-	password string,
-	signature string,
+	sender sender.IEmailSender,
+	ownerEmail,
+	signature,
 	baseTmplPath string,
 ) *notifier {
-	dialer := gomail.NewDialer(host, port, login, password)
-	dialer.TLSConfig = &tls.Config{
-		MinVersion:         tls.VersionTLS12,
-		ServerName:         host,
-		InsecureSkipVerify: false,
-	}
-
 	return &notifier{
-		dialer:                             dialer,
-		login:                              login,
+		sender:                             sender,
+		ownerEmail:                         ownerEmail,
 		signature:                          signature,
 		bookingConfirmationRequestTmplPath: baseTmplPath + "booking_confirmation_request.tmpl",
 		bookingConfirmationTmplPath:        baseTmplPath + "booking_confirmation.tmpl",
@@ -81,7 +70,7 @@ func (n *notifier) NotifyPassActivation(email string, passSlots []models.PassSlo
 		return fmt.Errorf("could not build msg to recipient %s: %w", email, err)
 	}
 
-	if err = n.dialer.DialAndSend(msgToRecipient); err != nil {
+	if err = n.sender.Send(msgToRecipient); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -114,7 +103,7 @@ func (n *notifier) NotifyConfirmationLink(
 		return fmt.Errorf("could not build msg to recipient %s: %w", email, err)
 	}
 
-	if err = n.dialer.DialAndSend(msgToRecipient); err != nil {
+	if err = n.sender.Send(msgToRecipient); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -157,7 +146,7 @@ func (n *notifier) NotifyBookingConfirmation(
 		classStartTimeDetails,
 	)
 
-	if err = n.dialer.DialAndSend(msgToRecipient, msgToOwner); err != nil {
+	if err = n.sender.Send(msgToRecipient, msgToOwner); err != nil {
 		return fmt.Errorf("failed to send emails: %w", err)
 	}
 
@@ -195,7 +184,7 @@ func (n *notifier) NotifyBookingCancellation(params models.NotifierParams) error
 		classStartTimeDetails,
 	)
 
-	if err = n.dialer.DialAndSend(msgToRecipient, msgToOwner); err != nil {
+	if err = n.sender.Send(msgToRecipient, msgToOwner); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -231,7 +220,7 @@ func (n *notifier) NotifyClassUpdate(
 		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
 	}
 
-	if err = n.dialer.DialAndSend(msgToRecipient); err != nil {
+	if err = n.sender.Send(msgToRecipient); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -262,7 +251,7 @@ func (n *notifier) NotifyClassCancellation(params models.NotifierParams, msg str
 		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
 	}
 
-	if err = n.dialer.DialAndSend(msgToRecipient); err != nil {
+	if err = n.sender.Send(msgToRecipient); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -295,7 +284,7 @@ func (n *notifier) NotifyBookingReminder(
 		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
 	}
 
-	if err = n.dialer.DialAndSend(msgToRecipient); err != nil {
+	if err = n.sender.Send(msgToRecipient); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -307,21 +296,20 @@ func (n *notifier) buildMsgToRecipient(
 	subject string,
 	tmpl *template.Template,
 	tmplData any,
-) (*gomail.Message, error) {
+) (sender.Message, error) {
 	var body strings.Builder
 
 	err := tmpl.Execute(&body, tmplData)
 	if err != nil {
-		return nil, fmt.Errorf("could not execute template: %w", err)
+		return sender.Message{}, fmt.Errorf("could not execute template: %w", err)
 	}
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", n.login)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", subject)
-	msg.SetBody("text/html", body.String())
-
-	return msg, nil
+	return sender.Message{
+		From:    n.ownerEmail,
+		To:      email,
+		Subject: subject,
+		Body:    body.String(),
+	}, nil
 }
 
 func (n *notifier) buildMsgToOwner(
@@ -329,7 +317,7 @@ func (n *notifier) buildMsgToOwner(
 	recipientFirstName, recipientLastName string,
 	passSlotsView []notifierModels.PassSlotView,
 	classTimeDetails timeDetails,
-) *gomail.Message {
+) sender.Message {
 	subject := fmt.Sprintf("%s %s %s",
 		recipientFirstName,
 		recipientLastName,
@@ -356,13 +344,12 @@ func (n *notifier) buildMsgToOwner(
 		classTimeDetails.startHour,
 	)
 
-	msgToOwner := gomail.NewMessage()
-	msgToOwner.SetHeader("From", n.login)
-	msgToOwner.SetHeader("To", n.login)
-	msgToOwner.SetHeader("Subject", subject)
-	msgToOwner.SetBody("text/html", msg)
-
-	return msgToOwner
+	return sender.Message{
+		From:    n.ownerEmail,
+		To:      n.ownerEmail,
+		Subject: subject,
+		Body:    msg,
+	}
 }
 
 func isAllPassSlotsBlank(passSlotsView []notifierModels.PassSlotView) bool {

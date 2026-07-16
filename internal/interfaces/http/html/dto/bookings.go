@@ -29,7 +29,7 @@ type BookingCancellationFormView struct {
 func ToBookingCancellationFormView(
 	form models.BookingCancellationForm,
 ) (BookingCancellationFormView, error) {
-	classEssentialView, err := FromBookingCancellationClass(form.Class)
+	classEssentialView, err := ToBookingCancellationClassView(form.Class)
 	if err != nil {
 		return BookingCancellationFormView{},
 			fmt.Errorf("could not convert classDetails to classView: %w", err)

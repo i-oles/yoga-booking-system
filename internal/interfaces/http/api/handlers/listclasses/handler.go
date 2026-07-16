@@ -48,7 +48,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	response, err := dto.FromClassPresentations(classPresentations)
+	response, err := dto.ToClassDataResponsesFromPresentations(classPresentations)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "ClassListResponse: " + err.Error()})
 

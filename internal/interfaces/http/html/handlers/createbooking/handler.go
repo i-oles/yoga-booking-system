@@ -42,7 +42,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	view, err := dto.FromClassPresentation(bookingCreation.Class)
+	view, err := dto.ToClassView(bookingCreation.Class)
 	if err != nil {
 		viewErrs.HandleError(ginCtx, err, http.StatusInternalServerError)
 

@@ -69,7 +69,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	response, err := dto.FromClassData(classUpdateCommand)
+	response, err := dto.ToClassDataResponse(classUpdateCommand)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
 

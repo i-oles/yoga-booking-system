@@ -56,6 +56,7 @@ type Configuration struct {
 	ConfirmationEmailTmplPath        string
 	BaseNotifierTmplPath             string
 	IsVacation                       bool
+	MockEmailSender                  bool
 }
 
 func (c *Configuration) Pretty() string {

@@ -28,7 +28,7 @@ func ToBookingResponse(booking domainModels.Booking) (BookingResponse, error) {
 		return BookingResponse{}, fmt.Errorf("could not convert createdAt to warsaw time: %w", err)
 	}
 
-	class, err := FromClass(booking.Class)
+	class, err := ToClassResponse(booking.Class)
 	if err != nil {
 		return BookingResponse{}, fmt.Errorf("could not cast class to dto class: %w", err)
 	}

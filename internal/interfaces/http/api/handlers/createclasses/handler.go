@@ -61,7 +61,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	response, err := dto.FromClasses(createdClasses)
+	response, err := dto.ToClassesResponse(createdClasses)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
 
