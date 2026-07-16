@@ -93,7 +93,11 @@ func isTimeToRemind(classStartTime, now time.Time) bool {
 	return diff > 0 && diff < 24*time.Hour
 }
 
-func (s *service) sendReminders(ctx context.Context, classID uuid.UUID, classStartTime time.Time) error {
+func (s *service) sendReminders(
+	ctx context.Context,
+	classID uuid.UUID,
+	classStartTime time.Time,
+) error {
 	bookings, err := s.bookingsRepo.ListByClassID(ctx, classID)
 	if err != nil {
 		return fmt.Errorf("could not list bookings for %v: %w", classID, err)
