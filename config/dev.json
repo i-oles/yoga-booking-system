@@ -22,5 +22,5 @@
   "isVacation": false,
   "domainAddr": "http://localhost:8080",
   "baseNotifierTmplPath" : "internal/infrastructure/notifier/templates/",
-  "mockEmailSender": true,
+  "mockEmailSender": true
 }
