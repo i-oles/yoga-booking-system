@@ -27,9 +27,9 @@ func NewBookingsRepo(db *gorm.DB) *bookingsRepo {
 func (r *bookingsRepo) GetByID(
 	ctx context.Context, bookingID uuid.UUID,
 ) (models.Booking, error) {
-	var sqlBooking db.SQLBooking
+	var SQLBooking db.SQLBooking
 
-	result := r.db.WithContext(ctx).Where("id = ?", bookingID).Preload("Class").First(&sqlBooking)
+	result := r.db.WithContext(ctx).Where("id = ?", bookingID).Preload("Class").Preload("Pass").First(&SQLBooking)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -40,7 +40,7 @@ func (r *bookingsRepo) GetByID(
 			fmt.Errorf("could not get booking for id %s: %w", bookingID, result.Error)
 	}
 
-	return sqlBooking.ToDomain(), nil
+	return SQLBooking.ToDomain(), nil
 }
 
 func (r *bookingsRepo) GetByEmailAndClassID(
@@ -48,11 +48,11 @@ func (r *bookingsRepo) GetByEmailAndClassID(
 	classID uuid.UUID,
 	email string,
 ) (models.Booking, error) {
-	var sqlBooking db.SQLBooking
+	var SQLBooking db.SQLBooking
 
 	result := r.db.WithContext(ctx).
 		Where("class_id = ? AND email = ?", classID, email).
-		First(&sqlBooking)
+		First(&SQLBooking)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -63,30 +63,32 @@ func (r *bookingsRepo) GetByEmailAndClassID(
 			fmt.Errorf("could not get booking by email %s, classID %s: %w", email, classID, result.Error)
 	}
 
-	return sqlBooking.ToDomain(), nil
+	return SQLBooking.ToDomain(), nil
 }
 
-func (r *bookingsRepo) GetIDsByEmail(
-	ctx context.Context, email string, limit int) ([]uuid.UUID, error,
+func (r *bookingsRepo) ListWithoutPassByEmail(
+	ctx context.Context, email string, limit int) ([]models.Booking, error,
 ) {
-	var sqlBookings []db.SQLBooking
+	var SQLBookings []db.SQLBooking
 
 	if limit <= 0 {
 		return nil, fmt.Errorf("limit must be positive: %d", limit)
 	}
 
 	if err := r.db.WithContext(ctx).
-		Select("id", "created_at").
-		Where("email = ?", email).
+		Where("email = ? AND pass_id IS NULL", email).
 		Order("created_at DESC").
 		Limit(limit).
-		Find(&sqlBookings).Error; err != nil {
-		return nil, fmt.Errorf("could not get booking IDs for email %s: %w", email, err)
+		Preload("Class").
+		Preload("Pass").
+		Find(&SQLBookings).Error; err != nil {
+		return nil, fmt.Errorf("could not get bookings for %s without pass_id: %w", email, err)
 	}
 
-	result := make([]uuid.UUID, len(sqlBookings))
-	for i, booking := range sqlBookings {
-		result[i] = booking.ID
+	result := make([]models.Booking, len(SQLBookings))
+
+	for i, SQLBooking := range SQLBookings {
+		result[i] = SQLBooking.ToDomain()
 	}
 
 	return result, nil
@@ -95,7 +97,7 @@ func (r *bookingsRepo) GetIDsByEmail(
 func (r *bookingsRepo) List(ctx context.Context) ([]models.Booking, error) {
 	var SQLBookings []db.SQLBooking
 
-	if err := r.db.WithContext(ctx).Preload("Class").Find(&SQLBookings).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Class").Preload("Pass").Find(&SQLBookings).Error; err != nil {
 		return nil, fmt.Errorf("could not list bookings: %w", err)
 	}
 
@@ -123,6 +125,21 @@ func (r *bookingsRepo) CountForClassID(ctx context.Context, classID uuid.UUID) (
 	return int(count), nil
 }
 
+func (r *bookingsRepo) CountForPassID(ctx context.Context, passID int) (int, error) {
+	var count int64
+
+	var SQLBooking db.SQLBooking
+
+	if err := r.db.WithContext(ctx).
+		Model(&SQLBooking).
+		Where("pass_id = ?", passID).
+		Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("could count bookings for passID %d: %w", passID, err)
+	}
+
+	return int(count), nil
+}
+
 func (r *bookingsRepo) ListByClassID(
 	ctx context.Context,
 	classID uuid.UUID,
@@ -130,10 +147,34 @@ func (r *bookingsRepo) ListByClassID(
 	var SQLBookings []db.SQLBooking
 
 	if err := r.db.WithContext(ctx).
-		Preload("Class").
 		Where("class_id = ?", classID).
+		Preload("Class").
+		Preload("Pass").
 		Find(&SQLBookings).Error; err != nil {
 		return nil, fmt.Errorf("could not get bookings for classID %s: %w", classID, err)
+	}
+
+	result := make([]models.Booking, len(SQLBookings))
+
+	for i, SQLBooking := range SQLBookings {
+		result[i] = SQLBooking.ToDomain()
+	}
+
+	return result, nil
+}
+
+func (r *bookingsRepo) ListByPassID(
+	ctx context.Context,
+	passID int,
+) ([]models.Booking, error) {
+	var SQLBookings []db.SQLBooking
+
+	if err := r.db.WithContext(ctx).
+		Preload("Class").Preload("Pass").
+		Where("pass_id = ?", passID).
+		Order("created_at ASC").
+		Find(&SQLBookings).Error; err != nil {
+		return nil, fmt.Errorf("could not list bookings: %w", err)
 	}
 
 	result := make([]models.Booking, len(SQLBookings))
@@ -149,9 +190,9 @@ func (r *bookingsRepo) Insert(
 	ctx context.Context,
 	booking models.Booking,
 ) (uuid.UUID, error) {
-	sqlBooking := db.SQLBookingsFromDomain(booking)
+	SQLBooking := db.SQLBookingFromDomain(booking)
 
-	if err := r.db.WithContext(ctx).Create(&sqlBooking).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(&SQLBooking).Error; err != nil {
 		return uuid.Nil, fmt.Errorf("could not insert booking: %w", err)
 	}
 
@@ -159,11 +200,11 @@ func (r *bookingsRepo) Insert(
 }
 
 func (r *bookingsRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	var sqlBooking db.SQLBooking
+	var SQLBooking db.SQLBooking
 
 	result := r.db.WithContext(ctx).
 		Where("id = ?", id).
-		Delete(&sqlBooking)
+		Delete(&SQLBooking)
 	if result.Error != nil {
 		return fmt.Errorf("could not delete booking: %w", result.Error)
 	}
@@ -179,17 +220,22 @@ func (r *bookingsRepo) Update(
 	ctx context.Context,
 	bookingID uuid.UUID,
 	update map[string]any,
-) (models.Booking, error) {
-	var sqlBooking db.SQLBooking
+) error {
+	var SQLBooking db.SQLBooking
 
-	if err := r.db.WithContext(ctx).
-		Model(&sqlBooking).
+	result := r.db.WithContext(ctx).
+		Model(&SQLBooking).
 		Clauses(clause.Returning{}).
 		Where("id = ?", bookingID).
-		Updates(update).Error; err != nil {
-		return models.Booking{},
-			fmt.Errorf("could not update booking: %v with data: %v, %w", bookingID, update, err)
+		Updates(update)
+
+	if result.Error != nil {
+		return fmt.Errorf("could not update booking: %w", result.Error)
 	}
 
-	return sqlBooking.ToDomain(), nil
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("no booking found for id: %s", bookingID)
+	}
+
+	return nil
 }

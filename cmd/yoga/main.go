@@ -13,6 +13,7 @@ import (
 
 	"main/internal/application/bookings"
 	"main/internal/application/classes"
+	"main/internal/application/location"
 	"main/internal/application/passes"
 	"main/internal/application/pendingbookings"
 	"main/internal/application/reminder"
@@ -23,16 +24,21 @@ import (
 	dbModels "main/internal/infrastructure/models/db"
 	"main/internal/infrastructure/notifier/gmail"
 	sqliteRepo "main/internal/infrastructure/repository/sqlite"
+	"main/internal/infrastructure/sender"
+	gmailSender "main/internal/infrastructure/sender/gmail"
+	"main/internal/infrastructure/sender/memory"
 	apiErrs "main/internal/interfaces/http/api/errs"
 	apiErrHandler "main/internal/interfaces/http/api/errs/handler"
 	"main/internal/interfaces/http/api/errs/logging"
 	"main/internal/interfaces/http/api/handlers/activatepass"
 	"main/internal/interfaces/http/api/handlers/createclasses"
+	"main/internal/interfaces/http/api/handlers/createcontacts"
 	"main/internal/interfaces/http/api/handlers/deletebooking"
 	"main/internal/interfaces/http/api/handlers/deleteclass"
 	"main/internal/interfaces/http/api/handlers/listbookings"
 	"main/internal/interfaces/http/api/handlers/listbookingsbyclass"
 	"main/internal/interfaces/http/api/handlers/listclasses"
+	"main/internal/interfaces/http/api/handlers/listcontacts"
 	"main/internal/interfaces/http/api/handlers/listpendingbookings"
 	"main/internal/interfaces/http/api/handlers/updateclass"
 	viewErrs "main/internal/interfaces/http/html/errs"
@@ -41,6 +47,7 @@ import (
 	"main/internal/interfaces/http/html/handlers/cancelbooking"
 	"main/internal/interfaces/http/html/handlers/cancelbookingform"
 	"main/internal/interfaces/http/html/handlers/createbooking"
+	"main/internal/interfaces/http/html/handlers/emails"
 	"main/internal/interfaces/http/html/handlers/errorpage"
 	"main/internal/interfaces/http/html/handlers/home"
 	creatependingbooking "main/internal/interfaces/http/html/handlers/pendingbooking"
@@ -63,8 +70,10 @@ type Components struct {
 	passesService          services.IPassesService
 	bookingsRepo           repositories.IBookings
 	pendingBookingsRepo    repositories.IPendingBookings
+	contactsRepo           repositories.IContacts
 	reminder               reminder.IReminderService
 	database               *gorm.DB
+	storage                *memory.Storage
 }
 
 func main() {
@@ -87,6 +96,8 @@ func main() {
 		components.passesService,
 		components.bookingsRepo,
 		components.pendingBookingsRepo,
+		components.contactsRepo,
+		components.storage,
 		cfg,
 	)
 
@@ -150,6 +161,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		&dbModels.SQLPendingBooking{},
 		&dbModels.SQLBooking{},
 		&dbModels.SQLPass{},
+		&dbModels.SQLContact{},
 	)
 	if err != nil {
 		return Components{}, fmt.Errorf("failed to migrate database: %w", err)
@@ -159,24 +171,54 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	bookingsRepo := sqliteRepo.NewBookingsRepo(database)
 	pendingBookingsRepo := sqliteRepo.NewPendingBookingsRepo(database)
 	passesRepo := sqliteRepo.NewPassesRepo(database)
+	contactsRepo := sqliteRepo.NewContactsRepo(database)
 
 	tokenGenerator := token.NewGenerator()
-	emailNotifier := gmail.NewNotifier(
+
+	var sender sender.IEmailSender
+
+	sender = gmailSender.NewSender(
 		cfg.Notifier.Host,
 		cfg.Notifier.Port,
 		cfg.Notifier.Login,
 		cfg.Notifier.Password,
+	)
+
+	memoryStorage := memory.Storage{
+		Views: make([]string, 0),
+	}
+
+	if cfg.MockEmailSender {
+		sender = memory.NewSender(&memoryStorage)
+	}
+
+	emailNotifier := gmail.NewNotifier(
+		sender,
+		cfg.Notifier.Login,
 		cfg.Notifier.Signature,
 		cfg.BaseNotifierTmplPath,
 	)
 
 	unitOfWork := sqliteRepo.NewUnitOfWork(database)
+	passManager := services.PassManager{}
 
-	classesService := classes.NewService(classesRepo, bookingsRepo, unitOfWork, emailNotifier)
+	locationResolver := location.NewMemoryResolver()
+
+	classesService := classes.NewService(
+		classesRepo,
+		bookingsRepo,
+		unitOfWork,
+		&passManager,
+		emailNotifier,
+		locationResolver,
+		cfg.DomainAddr,
+	)
 	bookingsService := bookings.NewService(
 		unitOfWork,
 		bookingsRepo,
+		&passManager,
 		emailNotifier,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 
@@ -187,13 +229,15 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		cfg.DomainAddr,
 	)
 
-	passesService := passes.NewService(passesRepo, bookingsRepo, emailNotifier)
+	passesService := passes.NewService(passesRepo, bookingsRepo, emailNotifier, &passManager)
 
 	reminder := reminder.New(
 		unitOfWork,
 		classesRepo,
 		bookingsRepo,
 		emailNotifier,
+		&passManager,
+		locationResolver,
 		cfg.DomainAddr,
 	)
 
@@ -205,8 +249,10 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		passesService:          passesService,
 		bookingsRepo:           bookingsRepo,
 		pendingBookingsRepo:    pendingBookingsRepo,
+		contactsRepo:           contactsRepo,
 		reminder:               reminder,
 		database:               database,
+		storage:                &memoryStorage,
 	}, nil
 }
 
@@ -217,6 +263,8 @@ func setupRouter(
 	passesService services.IPassesService,
 	bookingsRepo repositories.IBookings,
 	pendingBookingsRepo repositories.IPendingBookings,
+	contactsRepo repositories.IContacts,
+	storage *memory.Storage,
 	cfg *configuration.Configuration,
 ) *gin.Engine {
 	router := gin.Default()
@@ -241,6 +289,7 @@ func setupRouter(
 	pendingBookingFormHandler := pendingbookingform.NewHandler()
 	cancelBookingFormHandler := cancelbookingform.NewHandler(bookingsService, viewErrorHandler)
 	errorPageHandler := errorpage.NewHandler()
+	emailsHander := emails.NewHandler(storage)
 
 	{
 		// home
@@ -260,6 +309,11 @@ func setupRouter(
 
 		requestLimiter := rate.NewLimiter(rate.Limit(1), 2)
 		api.POST("/pending_bookings", rateLimiterMiddleware(requestLimiter), createPendingBookingHandler.Handle)
+
+		// testing
+		if cfg.MockEmailSender {
+			api.GET("/emails", emailsHander.Handle)
+		}
 	}
 
 	var apiErrorHandler apiErrs.IErrorHandler
@@ -279,6 +333,8 @@ func setupRouter(
 	deleteBookingHandler := deletebooking.NewHandler(bookingsService, apiErrorHandler)
 	listPendingBookingsHandler := listpendingbookings.NewHandler(pendingBookingsRepo, apiErrorHandler)
 	activatePassHandler := activatepass.NewHandler(passesService, apiErrorHandler)
+	listContactsHandler := listcontacts.NewHandler(contactsRepo, apiErrorHandler)
+	createContactsHandler := createcontacts.NewHandler(contactsRepo, apiErrorHandler)
 
 	{
 		api.GET("/api/v1/bookings", authMiddleware, listBookingsHandler.Handle)
@@ -290,6 +346,8 @@ func setupRouter(
 		api.DELETE("/api/v1/classes/:class_id", authMiddleware, deleteClassHandler.Handle)
 		api.GET("/api/v1/classes/:class_id/bookings", authMiddleware, listBookingsByClassHandler.Handle)
 		api.PUT("/api/v1/passes", authMiddleware, activatePassHandler.Handle)
+		api.GET("/api/v1/contacts", authMiddleware, listContactsHandler.Handle)
+		api.POST("/api/v1/contacts", authMiddleware, createContactsHandler.Handle)
 	}
 
 	return router

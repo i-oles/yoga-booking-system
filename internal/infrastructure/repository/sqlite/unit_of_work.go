@@ -27,6 +27,7 @@ func (u *unitOfWork) WithTransaction(
 			Bookings:        NewBookingsRepo(tx),
 			Classes:         NewClassesRepo(tx),
 			Passes:          NewPassesRepo(tx),
+			Contacts:        NewContactsRepo(tx),
 		}
 
 		return fn(repos)

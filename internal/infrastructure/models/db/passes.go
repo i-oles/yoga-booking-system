@@ -4,17 +4,14 @@ import (
 	"time"
 
 	"main/internal/domain/models"
-
-	"github.com/google/uuid"
 )
 
 type SQLPass struct {
-	ID             int         `gorm:"primaryKey"`
-	Email          string      `gorm:"unique;not null"`
-	UsedBookingIDs []uuid.UUID `gorm:"type:json;serializer:json"`
-	TotalBookings  int         `gorm:"not null"`
-	UpdatedAt      time.Time   `gorm:"autoUpdateTime"`
-	CreatedAt      time.Time   `gorm:"autoCreateTime"`
+	ID         int       `gorm:"primaryKey"`
+	Email      string    `gorm:"not null"`
+	UpdatedAt  time.Time `gorm:"autoUpdateTime"`
+	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	TotalSlots int       `gorm:"not null"`
 }
 
 func (SQLPass) TableName() string {
@@ -23,13 +20,22 @@ func (SQLPass) TableName() string {
 
 func (s SQLPass) ToDomain() models.Pass {
 	pass := models.Pass{
-		ID:             s.ID,
-		Email:          s.Email,
-		UsedBookingIDs: s.UsedBookingIDs,
-		TotalBookings:  s.TotalBookings,
-		UpdatedAt:      s.UpdatedAt,
-		CreatedAt:      s.CreatedAt,
+		ID:         s.ID,
+		Email:      s.Email,
+		UpdatedAt:  s.UpdatedAt,
+		CreatedAt:  s.CreatedAt,
+		TotalSlots: s.TotalSlots,
 	}
 
 	return pass
+}
+
+func SQLPassFromDomain(domain models.Pass) SQLPass {
+	return SQLPass{
+		ID:         domain.ID,
+		Email:      domain.Email,
+		UpdatedAt:  domain.UpdatedAt,
+		CreatedAt:  domain.CreatedAt,
+		TotalSlots: domain.TotalSlots,
+	}
 }

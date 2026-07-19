@@ -226,13 +226,13 @@ func (m *mockPassesRepo) GetByEmail(
 }
 
 func (m *mockPassesRepo) Update(
-	ctx context.Context, id int, usedBookingIDs []uuid.UUID, totalBookings int,
+	ctx context.Context, id int, usedBookingIDs []uuid.UUID, totalSlots int,
 ) error {
 	return nil
 }
 
 func (m *mockPassesRepo) Insert(
-	ctx context.Context, email string, usedBookingIDs []uuid.UUID, totalBookings int,
+	ctx context.Context, email string, usedBookingIDs []uuid.UUID, totalSlots int,
 ) (models.Pass, error) {
 	return models.Pass{}, nil
 }

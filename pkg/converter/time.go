@@ -3,6 +3,8 @@ package converter
 import (
 	"fmt"
 	"time"
+
+	"main/pkg/translator"
 )
 
 const (
@@ -18,4 +20,21 @@ func ConvertToWarsawTime(t time.Time) (time.Time, error) { //nolint
 	}
 
 	return t.In(loc), nil
+}
+
+func ConvertClassTime(startTime time.Time) (weekDay, startDate, startHour string, err error) {
+	warsawTime, err := ConvertToWarsawTime(startTime)
+	if err != nil {
+		return "", "", "", fmt.Errorf("error while converting time to warsaw time: %w", err)
+	}
+
+	weekday, err := translator.TranslateToWeekDayToPolish(warsawTime.Weekday())
+	if err != nil {
+		return "", "", "", fmt.Errorf("error while translating week day to polish: %w", err)
+	}
+
+	return weekday,
+		warsawTime.Format(DateLayout),
+		warsawTime.Format(HourLayout),
+		nil
 }

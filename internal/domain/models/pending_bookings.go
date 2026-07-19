@@ -9,6 +9,7 @@ import (
 type PendingBooking struct {
 	ID                uuid.UUID
 	ClassID           uuid.UUID
+	Class             Class
 	Email             string
 	FirstName         string
 	LastName          string

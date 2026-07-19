@@ -10,30 +10,7 @@
                 <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; text-align: left;">Hej, oto Twój karnet!</h3>
 
                 <div style="max-width: 180px; width: 100%; padding: 0;">
-                    <div class="pass-container"
-                        style="background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(224, 224, 224, 0.8); padding-top: 20px; padding-bottom: 30px; padding-left: 30px; padding-right: 30px; border-radius: 4px; box-shadow: 4px 7px 8px rgba(0, 0, 0, 0.07); margin-bottom: 30px; width: 100%; text-align: center;">
-                        <div class="pass-title"
-                            style="font-weight: 600; font-size: 14px;  color: grey; opacity: 0.4; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                            karnet
-                        </div>
-                        <div class="pass-visual" style="padding-top: 15px; padding-bottom: 15px;">
-                        {{ range .PassState }}
-                            {{ if . }}
-                            <!-- USED ✓ -->
-                            <div class="pass-circle used"
-                                style="width: 16px; height: 16px; border: 2px solid grey; border-radius: 50%; background-color: grey; display: inline-block; margin: 0 6px; vertical-align: middle; text-align: center; line-height: 16px;">
-                                <span style="color: black; font-size: 9px; font-weight: bold;">✓</span>
-                            </div>
-                            {{ else }}
-                            <!-- NOT USED -->
-                            <div class="pass-circle used"
-                                style="width: 16px; height: 16px; border: 2px solid grey; border-radius: 50%; display: inline-block; margin: 0 6px; vertical-align: middle; text-align: center; line-height: 16px;">
-                                <span style="color: black; font-size: 9px; font-weight: bold;"></span>
-                            </div>
-                            {{ end }}
-                        {{ end }}
-                        </div>
-                    </div>
+                    {{ template "pass" . }}
                 </div>
                 <div style="margin-bottom: 20px; padding-top: 20px;">
                     <p style="margin: 0 0 15px 0; font-size: 14px;">

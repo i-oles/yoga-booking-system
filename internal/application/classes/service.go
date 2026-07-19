@@ -6,35 +6,45 @@ import (
 	"fmt"
 	"time"
 
-	"main/internal/domain/errs"
+	"main/internal/application/location"
+	appModels "main/internal/application/models"
 	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services"
 	repositoryError "main/internal/infrastructure/errs"
-	"main/pkg/tools"
 
 	"github.com/google/uuid"
 )
 
 type service struct {
-	classesRepo  repositories.IClasses
-	bookingsRepo repositories.IBookings
-	unitOfWork   repositories.IUnitOfWork
-	notifier     notifier.INotifier
+	classesRepo      repositories.IClasses
+	bookingsRepo     repositories.IBookings
+	unitOfWork       repositories.IUnitOfWork
+	passManager      services.IPassManager
+	notifier         notifier.INotifier
+	locationResolver location.IResolver
+	domainAddr       string
 }
 
 func NewService(
 	classesRepo repositories.IClasses,
 	bookingsRepo repositories.IBookings,
 	unitOfWork repositories.IUnitOfWork,
+	passManager services.IPassManager,
 	notifier notifier.INotifier,
+	locationResolver location.IResolver,
+	domainAddr string,
 ) *service {
 	return &service{
-		classesRepo:  classesRepo,
-		bookingsRepo: bookingsRepo,
-		unitOfWork:   unitOfWork,
-		notifier:     notifier,
+		classesRepo:      classesRepo,
+		bookingsRepo:     bookingsRepo,
+		unitOfWork:       unitOfWork,
+		passManager:      passManager,
+		notifier:         notifier,
+		locationResolver: locationResolver,
+		domainAddr:       domainAddr,
 	}
 }
 
@@ -42,7 +52,7 @@ func (s *service) ListClasses(
 	ctx context.Context,
 	onlyUpcomingClasses bool,
 	classesLimit *int,
-) ([]models.ClassWithCurrentCapacity, error) {
+) ([]appModels.ClassPresentation, error) {
 	if classesLimit != nil && *classesLimit < 0 {
 		return nil, api.ErrValidation(
 			fmt.Errorf("classes_limit must be greater than or equal to 0, got: %d", *classesLimit),
@@ -54,7 +64,7 @@ func (s *service) ListClasses(
 		return nil, fmt.Errorf("could not get all classes: %w", err)
 	}
 
-	result := make([]models.ClassWithCurrentCapacity, 0, len(classes))
+	classPresentations := make([]appModels.ClassPresentation, 0, len(classes))
 
 	for _, class := range classes {
 		bookingCount, err := s.bookingsRepo.CountForClassID(ctx, class.ID)
@@ -62,7 +72,12 @@ func (s *service) ListClasses(
 			return nil, fmt.Errorf("could not get bookings for class %v: %w", class.ID, err)
 		}
 
-		result = append(result, models.ClassWithCurrentCapacity{
+		locationLink, err := s.locationResolver.GetLink(class.Location)
+		if err != nil {
+			return nil, fmt.Errorf("could not get location link for: %s, err: %w", class.Location, err)
+		}
+
+		classPresentations = append(classPresentations, appModels.ClassPresentation{
 			ID:              class.ID,
 			StartTime:       class.StartTime,
 			ClassLevel:      class.ClassLevel,
@@ -70,28 +85,29 @@ func (s *service) ListClasses(
 			CurrentCapacity: class.MaxCapacity - bookingCount,
 			MaxCapacity:     class.MaxCapacity,
 			Location:        class.Location,
+			LocationLink:    locationLink,
 		})
 	}
 
 	if onlyUpcomingClasses {
-		filtered := make([]models.ClassWithCurrentCapacity, 0, len(result))
+		filtered := make([]appModels.ClassPresentation, 0, len(classPresentations))
 
 		now := time.Now()
-		for _, class := range result {
+		for _, class := range classPresentations {
 			if class.StartTime.After(now) {
 				filtered = append(filtered, class)
 			}
 		}
 
-		result = filtered
+		classPresentations = filtered
 	}
 
 	if classesLimit != nil {
-		limit := min(*classesLimit, len(result))
-		result = result[:limit]
+		limit := min(*classesLimit, len(classPresentations))
+		classPresentations = classPresentations[:limit]
 	}
 
-	return result, nil
+	return classPresentations, nil
 }
 
 func (s *service) CreateClasses(
@@ -130,31 +146,44 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 			)
 		}
 
-		for _, booking := range bookings {
-			if booking.Class == nil {
-				return errors.New("class field should not be empty")
-			}
+		var class models.Class
+		var locationLink string
 
+		if len(bookings) > 0 {
+			class = bookings[0].Class
+
+			locationLink, err = s.locationResolver.GetLink(class.Location)
+			if err != nil {
+				return fmt.Errorf("could not get location link for location: %s", class.Location)
+			}
+		}
+
+		for _, booking := range bookings {
 			err := repos.Bookings.Delete(ctx, booking.ID)
 			if err != nil {
 				return fmt.Errorf("could not delete booking for id %v: %w", booking.ID, err)
-			}
-
-			usedBookingIDs, totalBookings, err := s.decrementPassIfValid(ctx, repos, booking.Email, booking.ID)
-			if err != nil {
-				return fmt.Errorf("could not dectemetnt pass for %s: %w", booking.Email, err)
 			}
 
 			notifierParams := models.NotifierParams{
 				RecipientFirstName: booking.FirstName,
 				RecipientLastName:  booking.LastName,
 				RecipientEmail:     booking.Email,
-				ClassName:          booking.Class.ClassName,
-				ClassLevel:         booking.Class.ClassLevel,
-				StartTime:          booking.Class.StartTime,
-				Location:           booking.Class.Location,
-				PassUsedBookingIDs: usedBookingIDs,
-				PassTotalBookings:  totalBookings,
+				ClassName:          class.ClassName,
+				ClassLevel:         class.ClassLevel,
+				StartTime:          class.StartTime,
+				Location:           class.Location,
+				LocationLink:       locationLink,
+			}
+
+			if booking.Pass.Exists() {
+				pass := booking.Pass.Get()
+
+				usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
+				if err != nil {
+					return fmt.Errorf("could not get bookings for pass id %d: %w", pass.ID, err)
+				}
+
+				notifierParams.PassSlots = s.passManager.BuildPassSlots(usedBookings, pass.TotalSlots)
 			}
 
 			notifierParamsList = append(notifierParamsList, notifierParams)
@@ -181,94 +210,67 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 	return nil
 }
 
-func (s *service) decrementPassIfValid(
-	ctx context.Context,
-	repos repositories.Repositories,
-	email string,
-	bookingID uuid.UUID,
-) ([]uuid.UUID, *int, error) {
-	passOpt, err := repos.Passes.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, nil, fmt.Errorf("could not get pass: %w", err)
-	}
-
-	var (
-		updatedBookingIDs []uuid.UUID
-		totalBookings     *int
-	)
-
-	if passOpt.Exists() {
-		pass := passOpt.Get()
-
-		updatedBookingIDs, err = tools.RemoveFromSlice(pass.UsedBookingIDs, bookingID)
-		if errors.Is(err, errs.ErrBookingIDNotFoundInPass) {
-			return nil, nil, nil
-		}
-
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not remove bookingID %v from usedBookingIDs", bookingID)
-		}
-
-		err = repos.Passes.Update(ctx, pass.ID, updatedBookingIDs, pass.TotalBookings)
-		if err != nil {
-			return nil, nil,
-				fmt.Errorf("could not update pass for %s with %v: %w", pass.Email, updatedBookingIDs, err)
-		}
-
-		totalBookings = &pass.TotalBookings
-	}
-
-	return updatedBookingIDs, totalBookings, nil
-}
-
 func (s *service) UpdateClass(
-	ctx context.Context, classID uuid.UUID, update models.UpdateClass,
-) (models.Class, error) {
+	ctx context.Context, classID uuid.UUID, update appModels.UpdateClassCommand,
+) (appModels.ClassData, error) {
 	existingClasses, err := s.classesRepo.List(ctx)
 	if err != nil {
 		if errors.Is(err, repositoryError.ErrNotFound) {
-			return models.Class{}, api.ErrNotFound(err)
+			return appModels.ClassData{}, api.ErrNotFound(err)
 		}
 
-		return models.Class{}, fmt.Errorf("could not get existing classes: %w", err)
+		return appModels.ClassData{}, fmt.Errorf("could not get existing classes: %w", err)
 	}
 
 	if update.StartTime != nil {
 		err := validateClassStartTime(*update.StartTime, existingClasses)
 		if err != nil {
-			return models.Class{}, api.ErrValidation(err)
+			return appModels.ClassData{}, api.ErrValidation(err)
 		}
 	}
 
 	_, err = s.classesRepo.Get(ctx, classID)
 	if err != nil {
 		if errors.Is(err, repositoryError.ErrNotFound) {
-			return models.Class{}, api.ErrNotFound(err)
+			return appModels.ClassData{}, api.ErrNotFound(err)
 		}
 
-		return models.Class{}, fmt.Errorf("could not get class for class_id %v: %w", classID, err)
+		return appModels.ClassData{}, fmt.Errorf("could not get class for class_id %v: %w", classID, err)
 	}
 
 	updateData, err := getDataForClassUpdate(update)
 	if err != nil {
-		return models.Class{}, fmt.Errorf("could not get data for class update: %w", err)
+		return appModels.ClassData{}, fmt.Errorf("could not get data for class update: %w", err)
 	}
 
 	updatedClass, err := s.classesRepo.Update(ctx, classID, updateData)
 	if err != nil {
-		return models.Class{}, fmt.Errorf("could not update class: %w", err)
+		return appModels.ClassData{}, fmt.Errorf("could not update class: %w", err)
 	}
 
 	err = s.sendInformationAboutClassUpdateToUsers(ctx, update, updatedClass)
 	if err != nil {
-		return models.Class{}, fmt.Errorf("could not get class after update: %w", err)
+		return appModels.ClassData{}, fmt.Errorf("could not get class after update: %w", err)
 	}
 
-	return updatedClass, nil
+	bookingCount, err := s.bookingsRepo.CountForClassID(ctx, updatedClass.ID)
+	if err != nil {
+		return appModels.ClassData{}, fmt.Errorf("could not get bookings for class %v: %w", updatedClass.ID, err)
+	}
+
+	return appModels.ClassData{
+		ID:              updatedClass.ID,
+		StartTime:       updatedClass.StartTime,
+		ClassLevel:      updatedClass.ClassLevel,
+		ClassName:       updatedClass.ClassName,
+		MaxCapacity:     updatedClass.MaxCapacity,
+		CurrentCapacity: updatedClass.MaxCapacity - bookingCount,
+		Location:        updatedClass.Location,
+	}, nil
 }
 
 func (s *service) sendInformationAboutClassUpdateToUsers(
-	ctx context.Context, update models.UpdateClass, updatedClass models.Class,
+	ctx context.Context, update appModels.UpdateClassCommand, updatedClass models.Class,
 ) error {
 	if update.Location == nil && update.StartTime == nil {
 		return nil
@@ -284,6 +286,11 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 		return fmt.Errorf("could not set msg for notification: %w", err)
 	}
 
+	locationLink, err := s.locationResolver.GetLink(updatedClass.Location)
+	if err != nil {
+		return fmt.Errorf("could not get location link for location: %s", updatedClass.Location)
+	}
+
 	for _, booking := range bookings {
 		notifierParams := models.NotifierParams{
 			RecipientEmail:     booking.Email,
@@ -293,9 +300,14 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 			ClassLevel:         updatedClass.ClassLevel,
 			StartTime:          updatedClass.StartTime,
 			Location:           updatedClass.Location,
+			LocationLink:       locationLink,
 		}
 
-		err = s.notifier.NotifyClassUpdate(notifierParams, msg)
+		cancellationLink := fmt.Sprintf(
+			"%s/bookings/%s/cancel_form?token=%s", s.domainAddr, booking.ID, booking.ConfirmationToken,
+		)
+
+		err = s.notifier.NotifyClassUpdate(notifierParams, msg, cancellationLink)
 		if err != nil {
 			return fmt.Errorf("could not notify class update to with %+v: %w", notifierParams, err)
 		}
@@ -304,7 +316,7 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 	return nil
 }
 
-func getDataForClassUpdate(update models.UpdateClass) (map[string]any, error) {
+func getDataForClassUpdate(update appModels.UpdateClassCommand) (map[string]any, error) {
 	updateData := map[string]any{}
 	if update.StartTime != nil {
 		updateData["start_time"] = *update.StartTime

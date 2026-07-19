@@ -16,6 +16,7 @@ const (
 	ClassEmptyCode
 	SomeoneBookedClassFasterCode
 	InvalidCancellationLinkCode
+	TooLateToBook
 )
 
 type BusinessError struct {
@@ -80,6 +81,15 @@ func ErrClassFullyBooked(classID uuid.UUID, err error) *BusinessError {
 		Code:    ClassFullyBookedCode,
 		ClassID: &classID,
 		Message: "Brak wolnych miejsc na te zajęcia",
+		Err:     err,
+	}
+}
+
+func ErrTooLateToBook(classID uuid.UUID, err error) *BusinessError {
+	return &BusinessError{
+		Code:    ClassFullyBookedCode,
+		ClassID: &classID,
+		Message: "Zajęcia nie mają żadnej innej rezerwacji, a do rozpoczęcia zostało zbyt mało czasu by zarezerwować te zajęcia.",
 		Err:     err,
 	}
 }

@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type NotifierParams struct {
@@ -14,8 +12,8 @@ type NotifierParams struct {
 	ClassLevel         string
 	StartTime          time.Time
 	Location           string
-	PassUsedBookingIDs []uuid.UUID
-	PassTotalBookings  *int
+	LocationLink       string
+	PassSlots          []PassSlot
 }
 
 type OperationStatus string

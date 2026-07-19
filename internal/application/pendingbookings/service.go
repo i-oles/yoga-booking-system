@@ -19,6 +19,7 @@ import (
 const (
 	allowedTotalPendingBookingsLimit = 200
 	tokenLength                      = 32
+	deadlineBeforeClassStart         = 3 * time.Hour
 )
 
 type service struct {
@@ -46,7 +47,10 @@ func (s *service) CreatePendingBooking(
 	ctx context.Context,
 	pendingBookingParams models.PendingBookingParams,
 ) error {
-	var confirmationToken string
+	var (
+		confirmationToken string
+		class             models.Class
+	)
 
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
 		err := s.ensurePendingBookingCreationAllowed(
@@ -59,7 +63,7 @@ func (s *service) CreatePendingBooking(
 			return fmt.Errorf("pending booking creation not allowed: %w", err)
 		}
 
-		err = s.checkClassAvailability(ctx, repos, pendingBookingParams.ClassID)
+		class, err = s.checkClassAvailability(ctx, repos, pendingBookingParams.ClassID)
 		if err != nil {
 			return fmt.Errorf("class not available: %w", err)
 		}
@@ -94,6 +98,7 @@ func (s *service) CreatePendingBooking(
 		pendingBookingParams.Email,
 		pendingBookingParams.FirstName,
 		fmt.Sprintf("%s/bookings?token=%s", s.domainAddr, confirmationToken),
+		class.StartTime,
 	)
 	if err != nil {
 		return fmt.Errorf("could not notify confirmation link: %w", err)
@@ -153,24 +158,28 @@ func (s *service) checkClassAvailability(
 	ctx context.Context,
 	repos repositories.Repositories,
 	classID uuid.UUID,
-) error {
+) (models.Class, error) {
 	bookingCount, err := repos.Bookings.CountForClassID(ctx, classID)
 	if err != nil {
-		return fmt.Errorf("could not count bookings for class %v: %w ", classID, err)
+		return models.Class{}, fmt.Errorf("could not count bookings for class %v: %w ", classID, err)
 	}
 
 	class, err := repos.Classes.Get(ctx, classID)
 	if err != nil {
-		return fmt.Errorf("could not get class: %w", err)
+		return models.Class{}, fmt.Errorf("could not get class: %w", err)
 	}
 
 	if bookingCount == class.MaxCapacity {
-		return viewErrors.ErrClassFullyBooked(classID, fmt.Errorf("no spots left in class with id: %d", classID))
+		return models.Class{}, viewErrors.ErrClassFullyBooked(classID, fmt.Errorf("no spots left in class with id: %d", classID))
 	}
 
 	if class.StartTime.Before(time.Now()) {
-		return viewErrors.ErrClassExpired(classID, fmt.Errorf("class %s has expired at %v", classID, class.StartTime))
+		return models.Class{}, viewErrors.ErrClassExpired(classID, fmt.Errorf("class %s has expired at %v", classID, class.StartTime))
 	}
 
-	return nil
+	if bookingCount == 0 && time.Until(class.StartTime) < deadlineBeforeClassStart {
+		return models.Class{}, viewErrors.ErrTooLateToBook(classID, fmt.Errorf("class %s is empty and it is to late to book", class.ID))
+	}
+
+	return class, nil
 }

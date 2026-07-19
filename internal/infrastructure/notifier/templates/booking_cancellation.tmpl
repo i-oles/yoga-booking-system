@@ -8,77 +8,19 @@
         <tr>
             <td align="left">
                 <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; text-align: left;">Hej
-                    {{.RecipientFirstName}}!</h3>
+                    {{.BaseTmplData.RecipientFirstName}}!</h3>
                 <p style="margin: 0 0 20px 0; font-size: 14px; text-align: left;">Twoją rezerwacja na poniższe zajęcia została odwołana:</p>
 
                 <div style="max-width: 180px; width: 100%; padding: 0;">
-
-                    <div class="class-container"
-                        style="background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(224, 224, 224, 0.8); padding: 30px; border-radius: 4px;  box-shadow: 4px 7px 8px rgba(0, 0, 0, 0.07); font-size: 12px; margin-bottom: 15px; width: 100%;">
-
-                        <form>
-                            <div class="class-info">
-                                <div class="class-title"
-                                    style="font-weight: 600; font-size: 14px; color: grey; opacity: 0.4; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                                    {{ .ClassName }}
-                                </div>
-                                <table
-                                    style="border-collapse: collapse; margin-top: 10px; margin-bottom: 0px; width: 100%; font-size: 14px;">
-                                    <tr>
-                                        <td style="font-weight:300; padding: 6px 0; color: #666666;">poziom:</td>
-                                        <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .ClassLevel }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="font-weight:300; padding: 6px 0; color: #666666;">dzień:</td>
-                                        <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .WeekDay }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="font-weight:300; padding: 6px 0; color: #666666;">data:</td>
-                                        <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .Date }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="font-weight:300; padding: 6px 0; color: #666666;">godzina:</td>
-                                        <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .Hour }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="font-weight:300; padding: 6px 0; color: #666666;">gdzie:</td>
-                                        <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .Location }}
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </form>
-                    </div>
-                    {{ if .PassState }}
-                    <div class="pass-container"
-                        style="background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(224, 224, 224, 0.8); padding-top: 20px; padding-bottom: 30px; padding-left: 30px; padding-right: 30px; border-radius: 4px; box-shadow: 4px 7px 8px rgba(0, 0, 0, 0.07); margin-bottom: 30px; width: 100%; text-align: center;">
-                        <div class="pass-title"
-                            style="font-weight: 600; font-size: 14px;  color: grey; opacity: 0.4; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                            karnet
-                        </div>
-                        <div class="pass-visual" style="padding-top: 15px; padding-bottom: 15px;">
-                        {{ range .PassState }}
-                            {{ if . }}
-                            <div class="pass-circle used"
-                                style="width: 16px; height: 16px; border: 2px solid grey; border-radius: 50%; background-color: grey; display: inline-block; margin: 0 6px; vertical-align: middle; text-align: center; line-height: 16px;">
-                                <span style="color: black; font-size: 9px; font-weight: bold;">✓</span>
-                            </div>
-                            {{ else }}
-                            <div class="pass-circle used"
-                                style="width: 16px; height: 16px; border: 2px solid grey; border-radius: 50%; display: inline-block; margin: 0 6px; vertical-align: middle; text-align: center; line-height: 16px;">
-                                <span style="color: black; font-size: 9px; font-weight: bold;"></span>
-                            </div>
-                            {{ end }}
-                        {{ end }}
-                        </div>
-                    </div>
-                    <p style="margin: 10px 0 15px 0; font-size: 14px;">Na Twój karnet zwróciłem jedno miejsce &#128519;</p>
+                    {{ template "class" . }}
+                    {{ if .PassSlotsView }}
+                        {{ template "pass" . }}
+                        <p style="margin: 10px 0 15px 0; font-size: 14px;">Na Twój karnet zwróciłem jedno miejsce &#128519;</p>
                     {{ end }}
                 </div>
                 <div>
                     <p style="margin: 30px 0 5px 0; font-size: 14px;">Pozdrawiam,</p>
-                    <p style="margin: 0; font-size: 14px;">{{.Signature}}</p>
+                    <p style="margin: 0; font-size: 14px;">{{.BaseTmplData.Signature}}</p>
                 </div>
                 </div>
             </td>

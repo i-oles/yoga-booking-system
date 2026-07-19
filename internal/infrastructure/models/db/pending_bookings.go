@@ -11,6 +11,7 @@ import (
 type SQLPendingBooking struct {
 	ID                uuid.UUID `gorm:"type:uuid;primaryKey"`
 	ClassID           uuid.UUID `gorm:"type:uuid;not null"`
+	Class             SQLClass  `gorm:"foreignKey:class_id"`
 	Email             string    `gorm:"not null"`
 	FirstName         string    `gorm:"not null"`
 	LastName          string    `gorm:"not null"`
@@ -26,6 +27,7 @@ func (s SQLPendingBooking) ToDomain() models.PendingBooking {
 	return models.PendingBooking{
 		ID:                s.ID,
 		ClassID:           s.ClassID,
+		Class:             s.Class.ToDomain(),
 		Email:             s.Email,
 		FirstName:         s.FirstName,
 		LastName:          s.LastName,
@@ -34,14 +36,15 @@ func (s SQLPendingBooking) ToDomain() models.PendingBooking {
 	}
 }
 
-func SQLPendingBookingFromDomain(pendingBooking models.PendingBooking) SQLPendingBooking {
+func SQLPendingBookingFromDomain(domain models.PendingBooking) SQLPendingBooking {
 	return SQLPendingBooking{
-		ID:                pendingBooking.ID,
-		ClassID:           pendingBooking.ClassID,
-		Email:             pendingBooking.Email,
-		FirstName:         pendingBooking.FirstName,
-		LastName:          pendingBooking.LastName,
-		ConfirmationToken: pendingBooking.ConfirmationToken,
-		CreatedAt:         pendingBooking.CreatedAt,
+		ID:                domain.ID,
+		ClassID:           domain.ClassID,
+		Class:             SQLClassFromDomain(domain.Class),
+		Email:             domain.Email,
+		FirstName:         domain.FirstName,
+		LastName:          domain.LastName,
+		ConfirmationToken: domain.ConfirmationToken,
+		CreatedAt:         domain.CreatedAt,
 	}
 }

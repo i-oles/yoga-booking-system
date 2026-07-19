@@ -5,7 +5,6 @@ import (
 	"time"
 
 	domainModels "main/internal/domain/models"
-	"main/internal/interfaces/http/shared/dto"
 	"main/pkg/converter"
 
 	"github.com/google/uuid"
@@ -14,17 +13,24 @@ import (
 type BookingResponse struct {
 	ID        uuid.UUID     `json:"id"`
 	ClassID   uuid.UUID     `json:"class_id"`
+	PassID    *int          `json:"pass_id,omitempty"`
+	Pass      *PassDTO      `json:"pass,omitempty"`
 	FirstName string        `json:"first_name"`
 	LastName  string        `json:"last_name"`
 	Email     string        `json:"email"`
 	CreatedAt time.Time     `json:"created_at"`
-	Class     *dto.ClassDTO `json:"class,omitempty"`
+	Class     ClassResponse `json:"class"`
 }
 
 func ToBookingResponse(booking domainModels.Booking) (BookingResponse, error) {
 	createdAtWarsawTime, err := converter.ConvertToWarsawTime(booking.CreatedAt)
 	if err != nil {
 		return BookingResponse{}, fmt.Errorf("could not convert createdAt to warsaw time: %w", err)
+	}
+
+	class, err := ToClassResponse(booking.Class)
+	if err != nil {
+		return BookingResponse{}, fmt.Errorf("could not cast class to dto class: %w", err)
 	}
 
 	resp := BookingResponse{
@@ -34,15 +40,19 @@ func ToBookingResponse(booking domainModels.Booking) (BookingResponse, error) {
 		LastName:  booking.LastName,
 		Email:     booking.Email,
 		CreatedAt: createdAtWarsawTime,
+		Class:     class,
 	}
 
-	if booking.Class != nil {
-		class, err := dto.ToClassDTO(*booking.Class)
+	if booking.Pass.Exists() {
+		pass := booking.Pass.Get()
+		resp.PassID = &pass.ID
+
+		passDTO, err := ToPassDTO(pass)
 		if err != nil {
-			return BookingResponse{}, fmt.Errorf("could not cast class to dto class: %w", err)
+			return BookingResponse{}, fmt.Errorf("could not convert pass to passDTO: %w", err)
 		}
 
-		resp.Class = &class
+		resp.Pass = &passDTO
 	}
 
 	return resp, nil

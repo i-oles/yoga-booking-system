@@ -1,0 +1,49 @@
+{{ define "class" }}
+<div class="class-container"
+    style="background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(224, 224, 224, 0.8); padding: 30px; border-radius: 4px;  box-shadow: 4px 7px 8px rgba(0, 0, 0, 0.07); font-size: 12px; margin-bottom: 15px; width: 100%;">
+    <form>
+        <div class="class-info">
+            <div class="class-title"
+                style="font-weight: 600; font-size: 14px; color: grey; opacity: 0.4; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
+                {{ .BaseTmplData.ClassName }}
+            </div>
+            <table
+                style="border-collapse: collapse; margin-top: 10px; margin-bottom: 0px; width: 100%; font-size: 14px;">
+                <tr>
+                    <td style="font-weight:300; padding: 6px 0; color: #666666;">poziom:</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .BaseTmplData.ClassLevel }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:300; padding: 6px 0; color: #666666;">dzień:</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .BaseTmplData.WeekDay }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:300; padding: 6px 0; color: #666666;">data:</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .BaseTmplData.Date }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:300; padding: 6px 0; color: #666666;">godzina:</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">{{ .BaseTmplData.Hour }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:300; padding: 6px 0; color: #666666;">gdzie:</td>
+                    <td style="font-weight:500; padding: 6px 0; color: #000000;">
+                        <a
+                            href="{{ .BaseTmplData.LocationLink }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="
+                                color: inherit;
+                                text-decoration-color: #cfcfcf;
+                            "
+                        >
+                            {{ .BaseTmplData.Location }}
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</div>
+{{ end }}
+

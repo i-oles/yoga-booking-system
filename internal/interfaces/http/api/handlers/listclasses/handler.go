@@ -6,7 +6,6 @@ import (
 	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
-	sharedDTO "main/internal/interfaces/http/shared/dto"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,9 +26,9 @@ func NewHandler(
 }
 
 func (h *handler) Handle(ginCtx *gin.Context) {
-	var dtoGetClasses dto.GetClassesRequest
+	var listClassRequest dto.ListClassesRequest
 
-	err := ginCtx.ShouldBindJSON(&dtoGetClasses)
+	err := ginCtx.ShouldBindJSON(&listClassRequest)
 	if err != nil {
 		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
@@ -38,10 +37,10 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	ctx := ginCtx.Request.Context()
 
-	classes, err := h.classesService.ListClasses(
+	classPresentations, err := h.classesService.ListClasses(
 		ctx,
-		dtoGetClasses.OnlyUpcomingClasses,
-		dtoGetClasses.ClassesLimit,
+		listClassRequest.OnlyUpcomingClasses,
+		listClassRequest.ClassesLimit,
 	)
 	if err != nil {
 		h.apiErrorHandler.Handle(ginCtx, err)
@@ -49,12 +48,12 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	classesResp, err := sharedDTO.ToClassesWithCurrentCapacityDTO(classes)
+	response, err := dto.ToClassDataResponsesFromPresentations(classPresentations)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
+		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "ClassListResponse: " + err.Error()})
 
 		return
 	}
 
-	ginCtx.JSON(http.StatusOK, classesResp)
+	ginCtx.JSON(http.StatusOK, response)
 }

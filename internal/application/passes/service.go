@@ -8,6 +8,7 @@ import (
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -16,96 +17,88 @@ type service struct {
 	passesRepo   repositories.IPasses
 	bookingsRepo repositories.IBookings
 	notifier     notifier.INotifier
+	passManager  services.IPassManager
 }
 
 func NewService(
 	passesRepo repositories.IPasses,
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
+	passManager services.IPassManager,
 ) *service {
 	return &service{
 		passesRepo:   passesRepo,
 		bookingsRepo: bookingsRepo,
 		notifier:     notifier,
+		passManager:  passManager,
 	}
 }
 
 func (s *service) ActivatePass(
 	ctx context.Context, params models.PassActivationParams,
-) (models.Pass, error) {
-	if params.UsedBookings > params.TotalBookings {
-		return models.Pass{},
-			api.ErrValidation(fmt.Errorf("usedBookings: %d is grater than totalBookings: %d", params.UsedBookings, params.TotalBookings))
+) (models.PassActivation, error) {
+	if params.InitialAssignedSlots > params.TotalSlots {
+		return models.PassActivation{},
+			api.ErrValidation(
+				fmt.Errorf("initialAssignedSlots: %d is grater than totalSlots: %d",
+					params.InitialAssignedSlots,
+					params.TotalSlots),
+			)
 	}
 
-	passOpt, err := s.passesRepo.GetByEmail(ctx, params.Email)
+	pass, err := s.passesRepo.Insert(
+		ctx,
+		params.Email,
+		params.TotalSlots,
+	)
 	if err != nil {
-		return models.Pass{}, fmt.Errorf("could not get pass by email %s: %w", params.Email, err)
+		return models.PassActivation{}, fmt.Errorf("could not insert pass for %s: %w", params.Email, err)
 	}
 
-	// when user booked one or more classes in future - system needs to add this bookings to Pass
-	usedBookingIDs, err := s.getUsedBookingIDsForPass(ctx, params.Email, params.UsedBookings)
-	if err != nil {
-		return models.Pass{},
-			fmt.Errorf("could not get usedBookingIDs for email %s: %w", params.Email, err)
-	}
+	bookingsToAssignToPass := make([]models.Booking, 0, params.InitialAssignedSlots)
+	bookingIDsAssignedToPass := make([]uuid.UUID, 0, params.InitialAssignedSlots)
 
-	if !passOpt.Exists() {
-		pass, err := s.passesRepo.Insert(
-			ctx,
-			params.Email,
-			usedBookingIDs,
-			params.TotalBookings,
+	// user may want to add one or more existing future bookings - system needs to assign those to Pass
+	if params.InitialAssignedSlots > 0 {
+		bookingsToAssignToPass, err = s.bookingsRepo.ListWithoutPassByEmail(
+			ctx, params.Email, params.InitialAssignedSlots,
 		)
 		if err != nil {
-			return models.Pass{}, fmt.Errorf("could not insert pass for %s: %w", params.Email, err)
+			return models.PassActivation{},
+				fmt.Errorf("could not list bookings for email %s: %w", params.Email, err)
 		}
 
-		err = s.notifier.NotifyPassActivation(pass)
-		if err != nil {
-			return models.Pass{}, fmt.Errorf("could not send pass %v: %w", pass, err)
+		if params.InitialAssignedSlots != len(bookingsToAssignToPass) {
+			return models.PassActivation{}, api.ErrValidation(
+				fmt.Errorf("number of initialUsedSlots should be exactly equal to number of bookingsToAssignToPass: %d != %d",
+					params.InitialAssignedSlots,
+					len(bookingsToAssignToPass),
+				),
+			)
 		}
 
-		return pass, nil
+		for _, booking := range bookingsToAssignToPass {
+			err = s.bookingsRepo.Update(ctx, booking.ID, map[string]any{
+				"pass_id": pass.ID,
+			})
+			if err != nil {
+				return models.PassActivation{},
+					fmt.Errorf("could not update booking %s with pass_id %d: %w", booking.ID, pass.ID, err)
+			}
+
+			bookingIDsAssignedToPass = append(bookingIDsAssignedToPass, booking.ID)
+		}
 	}
 
-	pass := passOpt.Get()
+	passSlots := s.passManager.BuildPassSlots(bookingsToAssignToPass, params.TotalSlots)
 
-	err = s.passesRepo.Update(ctx, pass.ID, usedBookingIDs, params.TotalBookings)
+	err = s.notifier.NotifyPassActivation(params.Email, passSlots)
 	if err != nil {
-		return models.Pass{}, fmt.Errorf("could not update pass with %+v: %w", usedBookingIDs, err)
+		return models.PassActivation{}, fmt.Errorf("could notify pass activation with %v: %w", pass, err)
 	}
 
-	newPass := models.Pass{
-		ID:             pass.ID,
-		Email:          pass.Email,
-		UsedBookingIDs: usedBookingIDs,
-		TotalBookings:  params.TotalBookings,
-		CreatedAt:      pass.CreatedAt,
-		UpdatedAt:      pass.UpdatedAt,
-	}
-
-	err = s.notifier.NotifyPassActivation(newPass)
-	if err != nil {
-		return models.Pass{}, fmt.Errorf("could notify pass activation with %v: %w", pass, err)
-	}
-
-	return newPass, nil
-}
-
-func (s *service) getUsedBookingIDsForPass(
-	ctx context.Context,
-	email string,
-	passUsedBookings int,
-) ([]uuid.UUID, error) {
-	if passUsedBookings == 0 {
-		return []uuid.UUID{}, nil
-	}
-
-	usedBookingIDs, err := s.bookingsRepo.GetIDsByEmail(ctx, email, passUsedBookings)
-	if err != nil {
-		return nil, fmt.Errorf("could not get usedBookingIDs for email %s: %w", email, err)
-	}
-
-	return usedBookingIDs, nil
+	return models.PassActivation{
+		Pass:               pass,
+		BookingIDsAssigned: bookingIDsAssignedToPass,
+	}, nil
 }

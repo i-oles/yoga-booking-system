@@ -7,7 +7,6 @@ import (
 	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
-	sharedDTO "main/internal/interfaces/http/shared/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -29,18 +28,18 @@ func NewHandler(
 }
 
 func (h *handler) Handle(ginCtx *gin.Context) {
-	var dtoClasses []dto.CreateClassRequest
+	var createClassesRequest []dto.CreateClassRequest
 
-	err := ginCtx.ShouldBindJSON(&dtoClasses)
+	err := ginCtx.ShouldBindJSON(&createClassesRequest)
 	if err != nil {
 		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 		return
 	}
 
-	classes := make([]models.Class, 0, len(dtoClasses))
+	classes := make([]models.Class, 0, len(createClassesRequest))
 
-	for _, dtoClass := range dtoClasses {
+	for _, dtoClass := range createClassesRequest {
 		class := models.Class{
 			ID:          uuid.New(),
 			StartTime:   dtoClass.StartTime.UTC(),
@@ -62,12 +61,12 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
-	classesResp, err := sharedDTO.ToClassesDTO(createdClasses)
+	response, err := dto.ToClassesResponse(createdClasses)
 	if err != nil {
 		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
 
 		return
 	}
 
-	ginCtx.JSON(http.StatusCreated, classesResp)
+	ginCtx.JSON(http.StatusCreated, response)
 }
