@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-type IResolver interface {
-	GetLink(name string) (string, error)
-}
-
 type MemoryResolver struct {
 	locations map[string]string
 }
@@ -26,12 +22,12 @@ func NewMemoryResolver() MemoryResolver {
 	}
 }
 
-func (m MemoryResolver) GetLink(name string) (string, error) {
-	n := strings.ToLower(name)
+func (m MemoryResolver) GetLink(location string) (string, error) {
+	n := strings.ToLower(location)
 
 	link, ok := m.locations[n]
 	if !ok {
-		return "", fmt.Errorf("location link for: %s not found", name)
+		return "", fmt.Errorf("location link for: %s not found", location)
 	}
 
 	return link, nil

@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"main/internal/application/location"
+	"main/internal/application"
 	appModels "main/internal/application/models"
 	viewErrors "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 	"main/internal/infrastructure/errs"
 	"main/pkg/optional"
 
@@ -26,18 +25,18 @@ const (
 type service struct {
 	unitOfWork       repositories.IUnitOfWork
 	bookingsRepo     repositories.IBookings
-	passManager      services.IPassManager
+	passManager      application.IPassManager
 	notifier         notifier.INotifier
-	loactionResolver location.IResolver
+	loactionResolver application.ILocationResolver
 	domainAddr       string
 }
 
 func NewService(
 	unitOfWork repositories.IUnitOfWork,
 	bookingsRepo repositories.IBookings,
-	passManager services.IPassManager,
+	passManager application.IPassManager,
 	notifier notifier.INotifier,
-	locationResolver location.IResolver,
+	locationResolver application.ILocationResolver,
 	domainAddr string,
 ) *service {
 	return &service{
@@ -93,7 +92,7 @@ func (s *service) CreateBooking(ctx context.Context, token string) (appModels.Bo
 			return fmt.Errorf("class unavailable: %w", err)
 		}
 
-		// I need to make sure that I will check if previous pass will not have some empty slots. Three is enough.
+		// I need to check if previous passes don't have some empty slots. Three is enough.
 		passes, err := repos.Passes.ListByEmail(ctx, pendingBooking.Email, threeLastPasses)
 		if err != nil {
 			return fmt.Errorf("could not get pass: %w", err)
@@ -385,6 +384,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 
 		if booking.Pass.Exists() {
 			pass := booking.Pass.Get()
+
 			usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
 			if err != nil {
 				return fmt.Errorf("could not list bookings by pass id %d: %w", pass.ID, err)

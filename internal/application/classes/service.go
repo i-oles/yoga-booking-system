@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"main/internal/application/location"
+	"main/internal/application"
 	appModels "main/internal/application/models"
 	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 	repositoryError "main/internal/infrastructure/errs"
 
 	"github.com/google/uuid"
@@ -22,9 +21,9 @@ type service struct {
 	classesRepo      repositories.IClasses
 	bookingsRepo     repositories.IBookings
 	unitOfWork       repositories.IUnitOfWork
-	passManager      services.IPassManager
+	passManager      application.IPassManager
 	notifier         notifier.INotifier
-	locationResolver location.IResolver
+	locationResolver application.ILocationResolver
 	domainAddr       string
 }
 
@@ -32,9 +31,9 @@ func NewService(
 	classesRepo repositories.IClasses,
 	bookingsRepo repositories.IBookings,
 	unitOfWork repositories.IUnitOfWork,
-	passManager services.IPassManager,
+	passManager application.IPassManager,
 	notifier notifier.INotifier,
-	locationResolver location.IResolver,
+	locationResolver application.ILocationResolver,
 	domainAddr string,
 ) *service {
 	return &service{

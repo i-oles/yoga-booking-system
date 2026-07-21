@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"main/internal/application"
 	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -17,14 +17,14 @@ type service struct {
 	passesRepo   repositories.IPasses
 	bookingsRepo repositories.IBookings
 	notifier     notifier.INotifier
-	passManager  services.IPassManager
+	passManager  application.IPassManager
 }
 
 func NewService(
 	passesRepo repositories.IPasses,
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
-	passManager services.IPassManager,
+	passManager application.IPassManager,
 ) *service {
 	return &service{
 		passesRepo:   passesRepo,
