@@ -6,11 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	"main/internal/application/location"
+	"main/internal/application"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -24,8 +23,8 @@ type service struct {
 	classesRepo      repositories.IClasses
 	bookingsRepo     repositories.IBookings
 	notifier         notifier.INotifier
-	passManager      services.IPassManager
-	locationResolver location.IResolver
+	passManager      application.IPassManager
+	locationResolver application.ILocationResolver
 	domainAddr       string
 }
 
@@ -34,8 +33,8 @@ func New(
 	classesRepo repositories.IClasses,
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
-	passManager services.IPassManager,
-	locationResolver location.IResolver,
+	passManager application.IPassManager,
+	locationResolver application.ILocationResolver,
 	domainAddr string,
 ) *service {
 	return &service{

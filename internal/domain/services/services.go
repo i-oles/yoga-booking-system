@@ -42,10 +42,6 @@ type IPassesService interface {
 	) (models.PassActivation, error)
 }
 
-type IPassManager interface {
-	BuildPassSlots(bookings []models.Booking, totalSlots int) []models.PassSlot
-}
-
 type ITokenGenerator interface {
 	Generate(length int) (string, error)
 }

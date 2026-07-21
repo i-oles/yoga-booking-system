@@ -200,7 +200,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	)
 
 	unitOfWork := sqliteRepo.NewUnitOfWork(database)
-	passManager := services.PassManager{}
+	passManager := passes.PassManager{}
 
 	locationResolver := location.NewMemoryResolver()
 
