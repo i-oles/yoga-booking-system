@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"main/internal/application/pendingbookings"
 	"main/internal/domain/models"
-	"main/internal/domain/services"
 	"main/internal/interfaces/http/html/dto"
 	viewErrs "main/internal/interfaces/http/html/errs"
 
@@ -14,12 +14,12 @@ import (
 )
 
 type handler struct {
-	PendingBookingsService services.IPendingBookingsService
+	PendingBookingsService pendingbookings.IService
 	ViewErrorHandler       viewErrs.IErrorHandler
 }
 
 func NewHandler(
-	pendingBookingsService services.IPendingBookingsService,
+	pendingBookingsService pendingbookings.IService,
 	viewErrorHandler viewErrs.IErrorHandler,
 ) *handler {
 	return &handler{

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	appModels "main/internal/application/models"
+	"main/internal/application/classes"
 	"main/internal/domain/models"
 	"main/pkg/converter"
 
@@ -96,7 +96,7 @@ type ClassDataResponse struct {
 	Location        string    `json:"location"`
 }
 
-func ToClassDataResponse(class appModels.ClassData) (ClassDataResponse, error) {
+func ToClassDataResponse(class classes.ClassData) (ClassDataResponse, error) {
 	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
 		return ClassDataResponse{}, fmt.Errorf("error while converting class time: %w", err)
@@ -115,7 +115,7 @@ func ToClassDataResponse(class appModels.ClassData) (ClassDataResponse, error) {
 	}, nil
 }
 
-func ToClassDataReponses(classes []appModels.ClassData) ([]ClassDataResponse, error) {
+func ToClassDataReponses(classes []classes.ClassData) ([]ClassDataResponse, error) {
 	classItemsResponse := make([]ClassDataResponse, len(classes))
 
 	for idx, item := range classes {
@@ -131,7 +131,7 @@ func ToClassDataReponses(classes []appModels.ClassData) ([]ClassDataResponse, er
 }
 
 func ToClassDataResponseFromPresentation(
-	class appModels.ClassPresentation,
+	class classes.ClassPresentation,
 ) (ClassDataResponse, error) {
 	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
@@ -152,7 +152,7 @@ func ToClassDataResponseFromPresentation(
 }
 
 func ToClassDataResponsesFromPresentations(
-	classes []appModels.ClassPresentation,
+	classes []classes.ClassPresentation,
 ) ([]ClassDataResponse, error) {
 	classDatasResponse := make([]ClassDataResponse, len(classes))
 

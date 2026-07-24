@@ -3,7 +3,7 @@ package deletebooking
 import (
 	"net/http"
 
-	"main/internal/domain/services"
+	"main/internal/application/bookings"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
 	"github.com/gin-gonic/gin"
@@ -11,12 +11,12 @@ import (
 )
 
 type handler struct {
-	bookingsService services.IBookingsService
+	bookingsService bookings.IService
 	apiErrorHandler apiErrs.IErrorHandler
 }
 
 func NewHandler(
-	bookingsService services.IBookingsService,
+	bookingsService bookings.IService,
 	apiErrorHandler apiErrs.IErrorHandler,
 ) *handler {
 	return &handler{

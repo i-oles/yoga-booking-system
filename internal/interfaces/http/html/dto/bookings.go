@@ -3,7 +3,7 @@ package dto
 import (
 	"fmt"
 
-	"main/internal/application/models"
+	"main/internal/application/bookings"
 
 	"github.com/google/uuid"
 )
@@ -27,7 +27,7 @@ type BookingCancellationFormView struct {
 }
 
 func ToBookingCancellationFormView(
-	form models.BookingCancellationForm,
+	form bookings.BookingCancellationForm,
 ) (BookingCancellationFormView, error) {
 	classEssentialView, err := ToBookingCancellationClassView(form.Class)
 	if err != nil {

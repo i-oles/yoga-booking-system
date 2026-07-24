@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	appModels "main/internal/application/models"
 	domainModels "main/internal/domain/models"
+	"main/internal/domain/repositories"
 	repositoryError "main/internal/infrastructure/errs"
 	"main/mock"
 	"main/pkg/optional"
@@ -31,11 +31,11 @@ var (
 	classID3 = uuid.New()
 	classID4 = uuid.New()
 
-	bookingID1 = uuid.New()
 	bookingID2 = uuid.New()
 
 	passID1 = 1234
-	passID2 = 5678
+
+	otoJogaStudio = "studio otojoga"
 )
 
 var futureClass = domainModels.Class{
@@ -47,7 +47,7 @@ var futureClass = domainModels.Class{
 	Location:    "Studio A",
 }
 
-var futureClassPresentation = appModels.ClassPresentation{
+var futureClassPresentation = ClassPresentation{
 	ID:              futureClass.ID,
 	StartTime:       futureClass.StartTime,
 	ClassLevel:      futureClass.ClassLevel,
@@ -86,7 +86,7 @@ var futureClasses = []domainModels.Class{
 	},
 }
 
-var futureClassesPresentations = []appModels.ClassPresentation{
+var futureClassesPresentations = []ClassPresentation{
 	{
 		ID:              futureClasses[0].ID,
 		StartTime:       futureClasses[0].StartTime,
@@ -109,7 +109,7 @@ var futureClassesPresentations = []appModels.ClassPresentation{
 	},
 }
 
-var futureClassesPresentationsWithoutBookings = []appModels.ClassPresentation{
+var futureClassesPresentationsWithoutBookings = []ClassPresentation{
 	{
 		ID:              futureClasses[0].ID,
 		StartTime:       futureClasses[0].StartTime,
@@ -167,7 +167,7 @@ var pastAndFutureClasses = []domainModels.Class{
 	},
 }
 
-var pastAndFutureClassPresentations = []appModels.ClassPresentation{
+var pastAndFutureClassPresentations = []ClassPresentation{
 	{
 		ID:              classID1,
 		StartTime:       pastTime,
@@ -207,45 +207,6 @@ var pastAndFutureClassPresentations = []appModels.ClassPresentation{
 		MaxCapacity:     20,
 		Location:        "Studio D",
 		LocationLink:    "link",
-	},
-}
-
-var pastAndFutureClassDatas = []appModels.ClassData{
-	{
-		ID:              classID1,
-		StartTime:       pastTime,
-		ClassLevel:      "Beginner",
-		ClassName:       "Morning Yoga",
-		CurrentCapacity: 9,
-		MaxCapacity:     10,
-		Location:        "Studio A",
-	},
-	{
-		ID:              classID2,
-		StartTime:       futureTime1,
-		ClassLevel:      "Intermediate",
-		ClassName:       "Afternoon Yoga",
-		CurrentCapacity: 14,
-		MaxCapacity:     15,
-		Location:        "Studio B",
-	},
-	{
-		ID:              classID3,
-		StartTime:       futureTime2,
-		ClassLevel:      "Advanced",
-		ClassName:       "Evening Yoga",
-		CurrentCapacity: 11,
-		MaxCapacity:     12,
-		Location:        "Studio C",
-	},
-	{
-		ID:              classID4,
-		StartTime:       futureTime3,
-		ClassLevel:      "Beginner",
-		ClassName:       "Night Yoga",
-		CurrentCapacity: 19,
-		MaxCapacity:     20,
-		Location:        "Studio D",
 	},
 }
 
@@ -283,19 +244,6 @@ var pass1 = domainModels.Pass{
 	CreatedAt:  time.Date(2026, 1, 0o7, 12, 0, 0, 0, time.UTC),
 }
 
-var pass2 = domainModels.Pass{
-	ID:         passID2,
-	Email:      "second@test.com",
-	TotalSlots: 5,
-	UpdatedAt:  time.Now(),
-	CreatedAt:  time.Date(2025, 1, 0o2, 12, 0, 0, 0, time.UTC),
-}
-
-//	func anyValuePtr[T any](v T) *T {
-//		return &v
-//	}
-//
-
 func TestService_ListClasses(t *testing.T) {
 	limitOne := 1
 	negativeLimit := -1
@@ -307,9 +255,9 @@ func TestService_ListClasses(t *testing.T) {
 		mocks               func(
 			classRepo *mock.MockIClasses,
 			bookingsRepo *mock.MockIBookings,
-			locationResolver *mock.MockILocationResolver,
+			locationLinkProvider *mock.MockILinkProvider,
 		)
-		want          []appModels.ClassPresentation
+		want          []ClassPresentation
 		wantError     bool
 		errorContains string
 	}{
@@ -320,7 +268,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -330,11 +278,11 @@ func TestService_ListClasses(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClass.Location).
 					Return("link-a", nil)
 			},
-			want: []appModels.ClassPresentation{futureClassPresentation},
+			want: []ClassPresentation{futureClassPresentation},
 		},
 		{
 			name:                "List classes",
@@ -343,7 +291,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -357,11 +305,11 @@ func TestService_ListClasses(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClasses[1].ID).
 					Return(5, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClasses[0].Location).
 					Return("link-b", nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClasses[1].Location).
 					Return("link-c", nil)
 			},
@@ -374,7 +322,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -385,7 +333,7 @@ func TestService_ListClasses(t *testing.T) {
 						CountForClassID(gomock.Any(), class.ID).
 						Return(1, nil)
 
-					locationResolver.EXPECT().
+					locationLinkProvider.EXPECT().
 						GetLink(class.Location).
 						Return("link", nil)
 				}
@@ -399,7 +347,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -413,11 +361,11 @@ func TestService_ListClasses(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClasses[1].ID).
 					Return(0, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClasses[0].Location).
 					Return("link-b", nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClasses[1].Location).
 					Return("link-c", nil)
 			},
@@ -430,7 +378,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 			},
 			wantError:     true,
@@ -443,11 +391,11 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
-					Return(nil, fmt.Errorf("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get all classes",
@@ -459,7 +407,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -467,7 +415,7 @@ func TestService_ListClasses(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					CountForClassID(gomock.Any(), futureClass.ID).
-					Return(0, fmt.Errorf("db error"))
+					Return(0, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get bookings for class",
@@ -479,7 +427,7 @@ func TestService_ListClasses(t *testing.T) {
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -489,9 +437,9 @@ func TestService_ListClasses(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(0, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(futureClass.Location).
-					Return("", fmt.Errorf("maps error"))
+					Return("", errors.New("maps error"))
 			},
 			wantError:     true,
 			errorContains: "could not get location link",
@@ -505,17 +453,16 @@ func TestService_ListClasses(t *testing.T) {
 
 			classRepo := mock.NewMockIClasses(ctrl)
 			bookingsRepo := mock.NewMockIBookings(ctrl)
-			locationResolver := mock.NewMockILocationResolver(ctrl)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
 
-			tt.mocks(classRepo, bookingsRepo, locationResolver)
+			tt.mocks(classRepo, bookingsRepo, locationLinkProvider)
 
 			service := NewService(
 				classRepo,
 				bookingsRepo,
 				mock.NewMockIUnitOfWork(ctrl),
-				mock.NewMockIPassManager(ctrl),
 				mock.NewMockINotifier(ctrl),
-				locationResolver,
+				locationLinkProvider,
 				"testDomainAddr",
 			)
 
@@ -562,7 +509,10 @@ func TestService_CreateClasses(t *testing.T) {
 			newClasses: []domainModels.Class{futureClass},
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
-				classRepo.EXPECT().Insert(gomock.Any(), []domainModels.Class{futureClass}).Return([]domainModels.Class{futureClass}, nil)
+				classRepo.EXPECT().Insert(gomock.Any(), []domainModels.Class{futureClass}).Return(
+					[]domainModels.Class{futureClass},
+					nil,
+				)
 			},
 			want: []domainModels.Class{futureClass},
 		},
@@ -607,7 +557,10 @@ func TestService_CreateClasses(t *testing.T) {
 			newClasses: futureClasses,
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).
-					Return([]domainModels.Class{}, fmt.Errorf("could not get existing classes: %w", errors.New("db error")))
+					Return(
+						[]domainModels.Class{},
+						fmt.Errorf("could not get existing classes: %w", errors.New("db error")),
+					)
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
@@ -618,7 +571,10 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
 				classRepo.EXPECT().Insert(gomock.Any(), futureClasses).
-					Return([]domainModels.Class{}, fmt.Errorf("could not insert classes: %w", errors.New("db error")))
+					Return(
+						[]domainModels.Class{},
+						fmt.Errorf("could not insert classes: %w", errors.New("db error")),
+					)
 			},
 			wantError:     true,
 			errorContains: "could not insert classes",
@@ -637,9 +593,8 @@ func TestService_CreateClasses(t *testing.T) {
 				classRepo,
 				mock.NewMockIBookings(ctrl),
 				mock.NewMockIUnitOfWork(ctrl),
-				mock.NewMockIPassManager(ctrl),
 				mock.NewMockINotifier(ctrl),
-				mock.NewMockILocationResolver(ctrl),
+				mock.NewMockILinkProvider(ctrl),
 				"testDomainAddr",
 			)
 
@@ -677,27 +632,27 @@ func ptr[T any](v T) *T {
 func TestService_UpdateClass(t *testing.T) {
 	tests := []struct {
 		name   string
-		update appModels.UpdateClassCommand
+		update UpdateClassCommand
 		mocks  func(
 			classRepo *mock.MockIClasses,
 			bookingsRepo *mock.MockIBookings,
 			notifier *mock.MockINotifier,
-			locationResolver *mock.MockILocationResolver,
+			locationLinkProvider *mock.MockILinkProvider,
 		)
-		want          appModels.ClassData
+		want          ClassData
 		wantError     bool
 		errorContains string
 	}{
 		{
 			name: "Update class name",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.ClassName = "Power Yoga"
@@ -724,7 +679,7 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      futureClass.ClassLevel,
@@ -736,14 +691,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Update class start time",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.StartTime = futureTime3
@@ -770,7 +725,7 @@ func TestService_UpdateClass(t *testing.T) {
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(updatedClass.Location).
 					Return("link-a", nil)
 
@@ -786,7 +741,7 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureTime3,
 				ClassLevel:      futureClass.ClassLevel,
@@ -798,17 +753,17 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Update class location",
-			update: appModels.UpdateClassCommand{
-				Location: ptr("Studio X"),
+			update: UpdateClassCommand{
+				Location: ptr(otoJogaStudio),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
-				updatedClass.Location = "Studio X"
+				updatedClass.Location = otoJogaStudio
 
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -823,7 +778,7 @@ func TestService_UpdateClass(t *testing.T) {
 						gomock.Any(),
 						futureClass.ID,
 						map[string]any{
-							"location": "Studio X",
+							"location": otoJogaStudio,
 						},
 					).
 					Return(updatedClass, nil)
@@ -832,8 +787,8 @@ func TestService_UpdateClass(t *testing.T) {
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
-				locationResolver.EXPECT().
-					GetLink("Studio X").
+				locationLinkProvider.EXPECT().
+					GetLink(otoJogaStudio).
 					Return("link-x", nil)
 
 				notifier.EXPECT().
@@ -848,31 +803,31 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       futureClass.ClassName,
 				CurrentCapacity: 3,
 				MaxCapacity:     futureClass.MaxCapacity,
-				Location:        "Studio X",
+				Location:        otoJogaStudio,
 			},
 		},
 		{
 			name: "Update class start time and location",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
-				Location:  ptr("Studio X"),
+				Location:  ptr(otoJogaStudio),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.StartTime = futureTime3
-				updatedClass.Location = "Studio X"
+				updatedClass.Location = otoJogaStudio
 
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -888,7 +843,7 @@ func TestService_UpdateClass(t *testing.T) {
 						futureClass.ID,
 						map[string]any{
 							"start_time": futureTime3,
-							"location":   "Studio X",
+							"location":   otoJogaStudio,
 						},
 					).
 					Return(updatedClass, nil)
@@ -897,8 +852,8 @@ func TestService_UpdateClass(t *testing.T) {
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
-				locationResolver.EXPECT().
-					GetLink("Studio X").
+				locationLinkProvider.EXPECT().
+					GetLink(otoJogaStudio).
 					Return("link-x", nil)
 
 				notifier.EXPECT().
@@ -913,24 +868,24 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureTime3,
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       futureClass.ClassName,
 				CurrentCapacity: 3,
 				MaxCapacity:     futureClass.MaxCapacity,
-				Location:        "Studio X",
+				Location:        otoJogaStudio,
 			},
 		},
 		{
 			name:   "Validation error - empty update",
-			update: appModels.UpdateClassCommand{},
+			update: UpdateClassCommand{},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -945,14 +900,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Validation error - expired class start time",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(pastTime),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -963,14 +918,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Validation error - class with the same start time already exists",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(futureTime2),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -981,32 +936,32 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Repository list error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
-					Return(nil, fmt.Errorf("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
 		},
 		{
 			name: "Repository get not found",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -1021,14 +976,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Repository get error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -1036,21 +991,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				classRepo.EXPECT().
 					Get(gomock.Any(), futureClass.ID).
-					Return(domainModels.Class{}, fmt.Errorf("db error"))
+					Return(domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get class",
 		},
 		{
 			name: "Repository update error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -1068,21 +1023,21 @@ func TestService_UpdateClass(t *testing.T) {
 							"class_name": "Power Yoga",
 						},
 					).
-					Return(domainModels.Class{}, fmt.Errorf("db error"))
+					Return(domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not update class",
 		},
 		{
 			name: "Repository bookings count error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassName: ptr("Power Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.ClassName = "Power Yoga"
@@ -1107,21 +1062,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					CountForClassID(gomock.Any(), futureClass.ID).
-					Return(0, fmt.Errorf("db error"))
+					Return(0, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get bookings for class",
 		},
 		{
 			name: "Repository list bookings error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.StartTime = futureTime3
@@ -1146,24 +1101,24 @@ func TestService_UpdateClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					ListByClassID(gomock.Any(), futureClass.ID).
-					Return(nil, fmt.Errorf("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get class after update",
 		},
 		{
 			name: "Location resolver error",
-			update: appModels.UpdateClassCommand{
-				Location: ptr("Studio X"),
+			update: UpdateClassCommand{
+				Location: ptr(otoJogaStudio),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
-				updatedClass.Location = "Studio X"
+				updatedClass.Location = otoJogaStudio
 
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -1178,7 +1133,7 @@ func TestService_UpdateClass(t *testing.T) {
 						gomock.Any(),
 						futureClass.ID,
 						map[string]any{
-							"location": "Studio X",
+							"location": otoJogaStudio,
 						},
 					).
 					Return(updatedClass, nil)
@@ -1187,23 +1142,23 @@ func TestService_UpdateClass(t *testing.T) {
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
-				locationResolver.EXPECT().
-					GetLink("Studio X").
-					Return("", fmt.Errorf("maps error"))
+				locationLinkProvider.EXPECT().
+					GetLink(otoJogaStudio).
+					Return("", errors.New("maps error"))
 			},
 			wantError:     true,
 			errorContains: "could not get class after update",
 		},
 		{
 			name: "Notifier error",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.StartTime = futureTime3
@@ -1230,7 +1185,7 @@ func TestService_UpdateClass(t *testing.T) {
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
-				locationResolver.EXPECT().
+				locationLinkProvider.EXPECT().
 					GetLink(updatedClass.Location).
 					Return("link-a", nil)
 
@@ -1247,14 +1202,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Update class level",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				ClassLevel: ptr("Advanced"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.ClassLevel = "Advanced"
@@ -1281,7 +1236,7 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      "Advanced",
@@ -1293,14 +1248,14 @@ func TestService_UpdateClass(t *testing.T) {
 		},
 		{
 			name: "Update max capacity",
-			update: appModels.UpdateClassCommand{
+			update: UpdateClassCommand{
 				MaxCapacity: ptr(10),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
 				bookingsRepo *mock.MockIBookings,
 				notifier *mock.MockINotifier,
-				locationResolver *mock.MockILocationResolver,
+				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
 				updatedClass.MaxCapacity = 10
@@ -1327,7 +1282,7 @@ func TestService_UpdateClass(t *testing.T) {
 					CountForClassID(gomock.Any(), futureClass.ID).
 					Return(2, nil)
 			},
-			want: appModels.ClassData{
+			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      futureClass.ClassLevel,
@@ -1347,22 +1302,21 @@ func TestService_UpdateClass(t *testing.T) {
 			classRepo := mock.NewMockIClasses(ctrl)
 			bookingsRepo := mock.NewMockIBookings(ctrl)
 			notifier := mock.NewMockINotifier(ctrl)
-			locationResolver := mock.NewMockILocationResolver(ctrl)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
 
 			tt.mocks(
 				classRepo,
 				bookingsRepo,
 				notifier,
-				locationResolver,
+				locationLinkProvider,
 			)
 
 			service := NewService(
 				classRepo,
 				bookingsRepo,
 				mock.NewMockIUnitOfWork(ctrl),
-				mock.NewMockIPassManager(ctrl),
 				notifier,
-				locationResolver,
+				locationLinkProvider,
 				"testDomainAddr",
 			)
 
@@ -1394,6 +1348,454 @@ func TestService_UpdateClass(t *testing.T) {
 
 			if !reflect.DeepEqual(result, tt.want) {
 				t.Errorf("expected: %+v, got %+v", tt.want, result)
+			}
+		})
+	}
+}
+
+func mockTransaction(
+	uow *mock.MockIUnitOfWork,
+	classRepo *mock.MockIClasses,
+	bookingsRepo *mock.MockIBookings,
+	passRepo *mock.MockIPasses,
+) {
+	uow.EXPECT().
+		WithTransaction(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(
+			ctx context.Context,
+			fn func(repositories.Repositories) error,
+		) error {
+			return fn(repositories.Repositories{
+				Classes:  classRepo,
+				Bookings: bookingsRepo,
+				Passes:   passRepo,
+			})
+		})
+}
+
+func TestService_DeleteClass(t *testing.T) {
+	tests := []struct {
+		name  string
+		msg   *string
+		mocks func(
+			uow *mock.MockIUnitOfWork,
+			classRepo *mock.MockIClasses,
+			bookingsRepo *mock.MockIBookings,
+			passRepo *mock.MockIPasses,
+			notifier *mock.MockINotifier,
+			locationLinkProvider *mock.MockILinkProvider,
+		)
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name: "Delete class without bookings",
+			msg:  nil,
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(nil)
+			},
+		},
+		{
+			name: "Delete class with booking",
+			msg:  ptr("Class cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link-a", nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), bookingWithoutPass.ID).
+					Return(nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(nil)
+
+				notifier.EXPECT().
+					NotifyClassCancellation(
+						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						"Class cancelled",
+					).
+					Return(nil)
+			},
+		},
+		{
+			name: "Delete class with booking and pass",
+			msg:  ptr("Class cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link-a", nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), bookingWithPass.ID).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), pass1.ID).
+					Return([]domainModels.Booking{bookingWithPass}, nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(nil)
+
+				notifier.EXPECT().
+					NotifyClassCancellation(
+						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						"Class cancelled",
+					).
+					Return(nil)
+			},
+		},
+		{
+			name: "Validation error - bookings exists but msg is nil",
+			msg:  nil,
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+			},
+			wantError:     true,
+			errorContains: "reason msg can not be empty",
+		},
+		{
+			name: "Repository list bookings error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return(nil, fmt.Errorf("db error"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+		{
+			name: "Location resolver error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("", fmt.Errorf("maps error"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+		{
+			name: "Repository delete booking error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link", nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), bookingWithoutPass.ID).
+					Return(fmt.Errorf("db error"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+		{
+			name: "Repository list bookings by pass error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link", nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), bookingWithPass.ID).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), pass1.ID).
+					Return(nil, fmt.Errorf("db error"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+		{
+			name: "Repository delete class error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(fmt.Errorf("db error"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+		{
+			name: "Unit of work error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				uow.EXPECT().
+					WithTransaction(gomock.Any(), gomock.Any()).
+					Return(fmt.Errorf("transaction failed"))
+			},
+			wantError:     true,
+			errorContains: "delete class transaction failed",
+		},
+
+		{
+			name: "Notifier error",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link", nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), bookingWithoutPass.ID).
+					Return(nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(nil)
+
+				notifier.EXPECT().
+					NotifyClassCancellation(
+						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						"Cancelled",
+					).
+					Return(fmt.Errorf("smtp error"))
+			},
+			wantError:     true,
+			errorContains: "smtp error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			uow := mock.NewMockIUnitOfWork(ctrl)
+			classRepo := mock.NewMockIClasses(ctrl)
+			bookingsRepo := mock.NewMockIBookings(ctrl)
+			passRepo := mock.NewMockIPasses(ctrl)
+			notifier := mock.NewMockINotifier(ctrl)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
+
+			tt.mocks(
+				uow,
+				classRepo,
+				bookingsRepo,
+				passRepo,
+				notifier,
+				locationLinkProvider,
+			)
+
+			service := NewService(
+				classRepo,
+				bookingsRepo,
+				uow,
+				notifier,
+				locationLinkProvider,
+				"testDomainAddr",
+			)
+
+			err := service.DeleteClass(
+				context.Background(),
+				futureClass.ID,
+				tt.msg,
+			)
+
+			if tt.wantError {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.errorContains)
+				}
+
+				if !strings.Contains(err.Error(), tt.errorContains) {
+					t.Fatalf("expected error containing %q, got %q", tt.errorContains, err.Error())
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}

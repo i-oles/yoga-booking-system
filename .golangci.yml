@@ -18,7 +18,6 @@ linters:
     - durationcheck
     - errcheck
     - errname
-    - err113
     - errorlint
     - exhaustive
     - fatcontext
@@ -96,6 +95,7 @@ linters:
 
   disable:
     - tagalign
+    - err113
 
   settings:
 

@@ -3,8 +3,7 @@ package updateclass
 import (
 	"net/http"
 
-	appModels "main/internal/application/models"
-	"main/internal/domain/services"
+	"main/internal/application/classes"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -13,12 +12,12 @@ import (
 )
 
 type handler struct {
-	classesService  services.IClassesService
+	classesService  classes.IService
 	apiErrorHandler apiErrs.IErrorHandler
 }
 
 func NewHandler(
-	classesService services.IClassesService,
+	classesService classes.IService,
 	apiErrorHandler apiErrs.IErrorHandler,
 ) *handler {
 	return &handler{
@@ -54,7 +53,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	ctx := ginCtx.Request.Context()
 
-	update := appModels.UpdateClassCommand{
+	update := classes.UpdateClassCommand{
 		StartTime:   dtoUpdateClass.StartTime,
 		ClassLevel:  dtoUpdateClass.ClassLevel,
 		ClassName:   dtoUpdateClass.ClassName,

@@ -3,7 +3,7 @@ package cancelbookingform
 import (
 	"net/http"
 
-	"main/internal/domain/services"
+	"main/internal/application/bookings"
 	"main/internal/interfaces/http/html/dto"
 	viewErrs "main/internal/interfaces/http/html/errs"
 
@@ -12,12 +12,12 @@ import (
 )
 
 type handler struct {
-	bookingService   services.IBookingsService
+	bookingService   bookings.IService
 	viewErrorHandler viewErrs.IErrorHandler
 }
 
 func NewHandler(
-	bookingService services.IBookingsService,
+	bookingService bookings.IService,
 	viewErrorHandler viewErrs.IErrorHandler,
 ) *handler {
 	return &handler{

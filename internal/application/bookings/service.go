@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"main/internal/application"
-	appModels "main/internal/application/models"
+	"main/internal/application/classes"
+	"main/internal/application/location"
 	viewErrors "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services/passes"
 	"main/internal/infrastructure/errs"
 	"main/pkg/optional"
 
@@ -23,33 +24,30 @@ const (
 )
 
 type service struct {
-	unitOfWork       repositories.IUnitOfWork
-	bookingsRepo     repositories.IBookings
-	passManager      application.IPassManager
-	notifier         notifier.INotifier
-	loactionResolver application.ILocationResolver
-	domainAddr       string
+	unitOfWork           repositories.IUnitOfWork
+	bookingsRepo         repositories.IBookings
+	notifier             notifier.INotifier
+	locationLinkProvider location.ILinkProvider
+	domainAddr           string
 }
 
 func NewService(
 	unitOfWork repositories.IUnitOfWork,
 	bookingsRepo repositories.IBookings,
-	passManager application.IPassManager,
 	notifier notifier.INotifier,
-	locationResolver application.ILocationResolver,
+	locationLinkProvider location.ILinkProvider,
 	domainAddr string,
 ) *service {
 	return &service{
-		unitOfWork:       unitOfWork,
-		bookingsRepo:     bookingsRepo,
-		passManager:      passManager,
-		notifier:         notifier,
-		loactionResolver: locationResolver,
-		domainAddr:       domainAddr,
+		unitOfWork:           unitOfWork,
+		bookingsRepo:         bookingsRepo,
+		notifier:             notifier,
+		locationLinkProvider: locationLinkProvider,
+		domainAddr:           domainAddr,
 	}
 }
 
-func (s *service) CreateBooking(ctx context.Context, token string) (appModels.BookingCreation, error) {
+func (s *service) CreateBooking(ctx context.Context, token string) (BookingCreation, error) {
 	var (
 		pendingBooking models.PendingBooking
 		bookingID      uuid.UUID
@@ -59,123 +57,97 @@ func (s *service) CreateBooking(ctx context.Context, token string) (appModels.Bo
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
 		var err error
 
-		pendingBooking, err = repos.PendingBookings.GetByConfirmationToken(ctx, token)
+		pendingBooking, err = s.validatePendingBooking(ctx, token, repos)
 		if err != nil {
-			if errors.Is(err, errs.ErrNotFound) {
-				return viewErrors.ErrPendingBookingNotFound(
-					fmt.Errorf("pending booking for token: %s not found", token),
-				)
-			}
-
-			return fmt.Errorf("could not get pending booking: %w", err)
+			return fmt.Errorf("could not validate pendingBooking: %w", err)
 		}
 
-		_, err = repos.Bookings.GetByEmailAndClassID(ctx, pendingBooking.ClassID, pendingBooking.Email)
-		if err == nil {
-			return viewErrors.ErrBookingAlreadyExists(
-				pendingBooking.ClassID,
-				pendingBooking.Email,
-				fmt.Errorf("booking already exists for email %s and classID %s", pendingBooking.Email, pendingBooking.ClassID),
-			)
-		}
-
-		if !errors.Is(err, errs.ErrNotFound) {
-			return fmt.Errorf("could not get booking for email %s and classID %s: %w",
-				pendingBooking.Email,
-				pendingBooking.ClassID,
-				err,
-			)
-		}
-
-		err = s.checkClassAvailability(ctx, repos, pendingBooking.Class)
-		if err != nil {
-			return fmt.Errorf("class unavailable: %w", err)
-		}
-
-		// I need to check if previous passes don't have some empty slots. Three is enough.
-		passes, err := repos.Passes.ListByEmail(ctx, pendingBooking.Email, threeLastPasses)
-		if err != nil {
-			return fmt.Errorf("could not get pass: %w", err)
-		}
-
-		booking := models.Booking{
-			ID:                uuid.New(),
-			ClassID:           pendingBooking.ClassID,
-			FirstName:         pendingBooking.FirstName,
-			LastName:          pendingBooking.LastName,
-			Email:             pendingBooking.Email,
-			CreatedAt:         time.Now().UTC(),
-			ConfirmationToken: pendingBooking.ConfirmationToken,
-		}
-
-		_, err = repos.Contacts.Insert(ctx, booking.Email, booking.FirstName, booking.LastName)
+		_, err = repos.Contacts.Insert(
+			ctx, pendingBooking.Email, pendingBooking.FirstName, pendingBooking.LastName,
+		)
 		if err != nil {
 			if !errors.Is(err, errs.ErrAlreadyExist) {
 				return fmt.Errorf("could not insert contact: %w", err)
 			}
 		}
 
-		for _, pass := range passes {
-			bookingsWithPassCount, err := s.bookingsRepo.CountForPassID(ctx, pass.ID)
-			if err != nil {
-				return fmt.Errorf("could not count bookings for passID %d: %w", pass.ID, err)
-			}
-
-			if bookingsWithPassCount < pass.TotalSlots {
-				booking.PassID = optional.Of(pass.ID)
-				booking.Pass = optional.Of(pass)
-
-				bookingID, err = repos.Bookings.Insert(ctx, booking)
-				if err != nil {
-					return fmt.Errorf("could not insert booking: %w", err)
-				}
-
-				bookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
-				if err != nil {
-					return fmt.Errorf("could not list bookings by passID %d: %w", pass.ID, err)
-				}
-
-				passSlots = s.passManager.BuildPassSlots(bookings, pass.TotalSlots)
-
-				return nil
-			}
-		}
-
-		bookingID, err = repos.Bookings.Insert(ctx, booking)
+		booking, err := s.createBooking(ctx, pendingBooking, repos)
 		if err != nil {
 			return fmt.Errorf("could not insert booking: %w", err)
 		}
 
+		if booking.Pass.Exists() {
+			passSlots, err = s.buildPassSlots(ctx, booking.Pass.Get(), repos)
+			if err != nil {
+				return fmt.Errorf("could not build passSlots: %w", err)
+			}
+		}
+
+		bookingID = booking.ID
+
 		return nil
 	})
 	if err != nil {
-		return appModels.BookingCreation{}, fmt.Errorf("create booking transaction failed: %w", err)
+		return BookingCreation{}, fmt.Errorf("create booking transaction failed: %w", err)
 	}
 
-	locationLink, err := s.loactionResolver.GetLink(pendingBooking.Class.Location)
+	locationLink, err := s.locationLinkProvider.GetLink(pendingBooking.Class.Location)
 	if err != nil {
-		return appModels.BookingCreation{}, fmt.Errorf("could not resolve location link for: %s", pendingBooking.Class.Location)
+		return BookingCreation{}, fmt.Errorf("could not get link for: %s", pendingBooking.Class.Location)
 	}
 
-	err = s.sendConfirmation(
-		pendingBooking, passSlots, locationLink, token, bookingID,
-	)
+	err = s.sendConfirmation(pendingBooking, passSlots, locationLink, token, bookingID)
 	if err != nil {
-		return appModels.BookingCreation{},
+		return BookingCreation{},
 			fmt.Errorf("could not send confirmation email %s: %w", pendingBooking.Email, err)
 	}
 
-	return appModels.BookingCreation{
-		Class: appModels.ClassPresentation{
-			ID:           pendingBooking.Class.ID,
-			StartTime:    pendingBooking.Class.StartTime,
-			ClassLevel:   pendingBooking.Class.ClassLevel,
-			ClassName:    pendingBooking.Class.ClassName,
-			MaxCapacity:  pendingBooking.Class.MaxCapacity,
-			Location:     pendingBooking.Class.Location,
-			LocationLink: locationLink,
-		},
-	}, nil
+	return buildBookingCreation(pendingBooking, locationLink), nil
+}
+
+func (s *service) validatePendingBooking(
+	ctx context.Context,
+	token string,
+	repos repositories.Repositories,
+) (models.PendingBooking, error) {
+	pendingBooking, err := repos.PendingBookings.GetByConfirmationToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, errs.ErrNotFound) {
+			return models.PendingBooking{}, viewErrors.ErrPendingBookingNotFound(
+				fmt.Errorf("pending booking for token: %s not found", token),
+			)
+		}
+
+		return models.PendingBooking{}, fmt.Errorf("could not get pending booking: %w", err)
+	}
+
+	_, err = repos.Bookings.GetByEmailAndClassID(ctx, pendingBooking.ClassID, pendingBooking.Email)
+	if err == nil {
+		return models.PendingBooking{}, viewErrors.ErrBookingAlreadyExists(
+			pendingBooking.ClassID,
+			pendingBooking.Email,
+			fmt.Errorf("booking already exists for email %s and classID %s",
+				pendingBooking.Email,
+				pendingBooking.ClassID,
+			),
+		)
+	}
+
+	if !errors.Is(err, errs.ErrNotFound) {
+		return models.PendingBooking{},
+			fmt.Errorf("could not get booking for email %s and classID %s: %w",
+				pendingBooking.Email,
+				pendingBooking.ClassID,
+				err,
+			)
+	}
+
+	err = s.checkClassAvailability(ctx, repos, pendingBooking.Class)
+	if err != nil {
+		return models.PendingBooking{}, fmt.Errorf("class unavailable: %w", err)
+	}
+
+	return pendingBooking, nil
 }
 
 func (s *service) checkClassAvailability(
@@ -184,7 +156,9 @@ func (s *service) checkClassAvailability(
 	class models.Class,
 ) error {
 	if class.StartTime.Before(time.Now()) {
-		return viewErrors.ErrClassExpired(class.ID, fmt.Errorf("class %s has expired at %v", class.ID, class.StartTime))
+		return viewErrors.ErrClassExpired(
+			class.ID, fmt.Errorf("class %s has expired at %v", class.ID, class.StartTime),
+		)
 	}
 
 	bookingCount, err := repos.Bookings.CountForClassID(ctx, class.ID)
@@ -193,10 +167,68 @@ func (s *service) checkClassAvailability(
 	}
 
 	if bookingCount == class.MaxCapacity {
-		return viewErrors.ErrSomeoneBookedClassFaster(fmt.Errorf("max capacity of class %d exceeded", class.MaxCapacity))
+		return viewErrors.ErrSomeoneBookedClassFaster(
+			fmt.Errorf("max capacity of class %d exceeded", class.MaxCapacity),
+		)
 	}
 
 	return nil
+}
+
+func (s *service) createBooking(
+	ctx context.Context,
+	pendingBooking models.PendingBooking,
+	repos repositories.Repositories,
+) (models.Booking, error) {
+	// I need to check if previous passes don't have some empty slots. Three is enough.
+	passes, err := repos.Passes.ListByEmail(ctx, pendingBooking.Email, threeLastPasses)
+	if err != nil {
+		return models.Booking{}, fmt.Errorf("could not get pass: %w", err)
+	}
+
+	booking := models.Booking{
+		ID:                uuid.New(),
+		ClassID:           pendingBooking.ClassID,
+		FirstName:         pendingBooking.FirstName,
+		LastName:          pendingBooking.LastName,
+		Email:             pendingBooking.Email,
+		CreatedAt:         time.Now().UTC(),
+		ConfirmationToken: pendingBooking.ConfirmationToken,
+	}
+
+	for _, pass := range passes {
+		bookingsWithPassCount, err := repos.Bookings.CountForPassID(ctx, pass.ID)
+		if err != nil {
+			return models.Booking{}, fmt.Errorf("could not count bookings for passID %d: %w", pass.ID, err)
+		}
+
+		if bookingsWithPassCount < pass.TotalSlots {
+			booking.PassID = optional.Of(pass.ID)
+			booking.Pass = optional.Of(pass)
+
+			break
+		}
+	}
+
+	_, err = repos.Bookings.Insert(ctx, booking)
+	if err != nil {
+		return models.Booking{}, fmt.Errorf("could not insert booking: %w", err)
+	}
+
+	return booking, nil
+}
+
+func (s *service) buildPassSlots(
+	ctx context.Context,
+	pass models.Pass,
+	repos repositories.Repositories,
+) ([]models.PassSlot, error) {
+	bookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not list bookings by passID %d: %w", pass.ID, err)
+	}
+
+	return passes.BuildPassSlots(bookings, pass.TotalSlots, time.Now()), nil
 }
 
 func (s *service) sendConfirmation(
@@ -230,6 +262,22 @@ func (s *service) sendConfirmation(
 	return nil
 }
 
+func buildBookingCreation(
+	pendingBooking models.PendingBooking, locationLink string,
+) BookingCreation {
+	return BookingCreation{
+		Class: classes.ClassPresentation{
+			ID:           pendingBooking.Class.ID,
+			StartTime:    pendingBooking.Class.StartTime,
+			ClassLevel:   pendingBooking.Class.ClassLevel,
+			ClassName:    pendingBooking.Class.ClassName,
+			MaxCapacity:  pendingBooking.Class.MaxCapacity,
+			Location:     pendingBooking.Class.Location,
+			LocationLink: locationLink,
+		},
+	}
+}
+
 func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token string) error {
 	var (
 		booking   models.Booking
@@ -248,7 +296,10 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		if err != nil {
 			if errors.Is(err, errs.ErrNoRowsAffected) {
 				return viewErrors.ErrBookingNotFound(
-					fmt.Errorf("delete booking failure, booking with email %s for class %s not found", booking.Email, booking.ClassID),
+					fmt.Errorf("delete booking failure, booking with email %s for class %s not found",
+						booking.Email,
+						booking.ClassID,
+					),
 				)
 			}
 
@@ -263,7 +314,7 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 				return fmt.Errorf("could not list bookings by pass id %d: %w", pass.ID, err)
 			}
 
-			passSlots = s.passManager.BuildPassSlots(usedBookings, pass.TotalSlots)
+			passSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
 		}
 
 		return nil
@@ -272,7 +323,7 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		return fmt.Errorf("cancel booking transaction failed: %w", err)
 	}
 
-	locationLink, err := s.loactionResolver.GetLink(booking.Class.Location)
+	locationLink, err := s.locationLinkProvider.GetLink(booking.Class.Location)
 	if err != nil {
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
@@ -329,24 +380,24 @@ func (s *service) ensureBookingCancellationAllowed(
 
 func (s *service) GetBookingCancellationForm(
 	ctx context.Context, bookingID uuid.UUID, token string,
-) (appModels.BookingCancellationForm, error) {
+) (BookingCancellationForm, error) {
 	booking, err := s.bookingsRepo.GetByID(ctx, bookingID)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
-			return appModels.BookingCancellationForm{}, viewErrors.ErrBookingNotFound(
+			return BookingCancellationForm{}, viewErrors.ErrBookingNotFound(
 				fmt.Errorf("booking with id %s not found: %w", bookingID, err),
 			)
 		}
 
-		return appModels.BookingCancellationForm{},
+		return BookingCancellationForm{},
 			fmt.Errorf("could not get booking for id %s: %w", bookingID, err)
 	}
 
 	if booking.ConfirmationToken != token {
-		return appModels.BookingCancellationForm{}, viewErrors.ErrInvalidCancellationLink(err)
+		return BookingCancellationForm{}, viewErrors.ErrInvalidCancellationLink(err)
 	}
 
-	class := appModels.BookingCancellationClass{
+	class := classes.BookingCancellationClass{
 		ID:         booking.Class.ID,
 		StartTime:  booking.Class.StartTime,
 		ClassLevel: booking.Class.ClassLevel,
@@ -354,7 +405,7 @@ func (s *service) GetBookingCancellationForm(
 		Location:   booking.Class.Location,
 	}
 
-	cancellationForm := appModels.BookingCancellationForm{
+	cancellationForm := BookingCancellationForm{
 		Class:             class,
 		BookingID:         booking.ID,
 		ConfirmationToken: booking.ConfirmationToken,
@@ -390,7 +441,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 				return fmt.Errorf("could not list bookings by pass id %d: %w", pass.ID, err)
 			}
 
-			passSlots = s.passManager.BuildPassSlots(usedBookings, pass.TotalSlots)
+			passSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
 		}
 
 		return nil
@@ -399,7 +450,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		return fmt.Errorf("delete booking transaction failed: %w", err)
 	}
 
-	locationLink, err := s.loactionResolver.GetLink(booking.Class.Location)
+	locationLink, err := s.locationLinkProvider.GetLink(booking.Class.Location)
 	if err != nil {
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}

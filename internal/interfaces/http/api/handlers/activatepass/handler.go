@@ -3,8 +3,8 @@ package activatepass
 import (
 	"net/http"
 
+	"main/internal/application/passes"
 	"main/internal/domain/models"
-	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -12,12 +12,12 @@ import (
 )
 
 type handler struct {
-	passesService   services.IPassesService
+	passesService   passes.IService
 	apiErrorHandler apiErrs.IErrorHandler
 }
 
 func NewHandler(
-	passesService services.IPassesService,
+	passesService passes.IService,
 	apiErrorHandler apiErrs.IErrorHandler,
 ) *handler {
 	return &handler{

@@ -22,9 +22,9 @@ type PassSlot struct {
 type PassSlotStatus int
 
 const (
-	Blank PassSlotStatus = iota
-	Past
-	Future
+	BlankStatus PassSlotStatus = iota
+	PastStatus
+	FutureStatus
 )
 
 type PassActivationParams struct {
