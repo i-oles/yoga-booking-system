@@ -3,7 +3,7 @@ package dto
 import (
 	"fmt"
 
-	appModels "main/internal/application/models"
+	"main/internal/application/classes"
 	"main/pkg/converter"
 
 	"github.com/google/uuid"
@@ -22,7 +22,7 @@ type ClassView struct {
 	LocationLink    string    `json:"location_link"`
 }
 
-func ToClassView(class appModels.ClassPresentation) (ClassView, error) {
+func ToClassView(class classes.ClassPresentation) (ClassView, error) {
 	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {
 		return ClassView{},
@@ -43,7 +43,7 @@ func ToClassView(class appModels.ClassPresentation) (ClassView, error) {
 	}, nil
 }
 
-func ToClassViews(classes []appModels.ClassPresentation) ([]ClassView, error) {
+func ToClassViews(classes []classes.ClassPresentation) ([]ClassView, error) {
 	classesView := make([]ClassView, len(classes))
 
 	for idx, class := range classes {
@@ -69,7 +69,7 @@ type BookingCancellationClassView struct {
 }
 
 func ToBookingCancellationClassView(
-	class appModels.BookingCancellationClass,
+	class classes.BookingCancellationClass,
 ) (BookingCancellationClassView, error) {
 	weekDay, startDate, startHour, err := converter.ConvertClassTime(class.StartTime)
 	if err != nil {

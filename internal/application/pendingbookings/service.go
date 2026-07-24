@@ -10,7 +10,6 @@ import (
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 	"main/internal/infrastructure/errs"
 
 	"github.com/google/uuid"
@@ -24,14 +23,14 @@ const (
 
 type service struct {
 	unitOfWork     repositories.IUnitOfWork
-	tokenGenerator services.ITokenGenerator
+	tokenGenerator ITokenGenerator
 	notifier       notifier.INotifier
 	domainAddr     string
 }
 
 func NewService(
 	unitOfWork repositories.IUnitOfWork,
-	tokenGenerator services.ITokenGenerator,
+	tokenGenerator ITokenGenerator,
 	notifier notifier.INotifier,
 	domainAddr string,
 ) *service {

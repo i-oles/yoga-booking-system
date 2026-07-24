@@ -328,7 +328,7 @@ func (n *notifier) buildMsgToOwner(
 		assignedSlots := 0
 
 		for _, slot := range passSlotsView {
-			if slot.Status == models.Future || slot.Status == models.Past {
+			if slot.Status == models.FutureStatus || slot.Status == models.PastStatus {
 				assignedSlots++
 			}
 		}
@@ -354,7 +354,7 @@ func (n *notifier) buildMsgToOwner(
 
 func isAllPassSlotsBlank(passSlotsView []notifierModels.PassSlotView) bool {
 	for _, passSlotView := range passSlotsView {
-		if passSlotView.Status != models.Blank {
+		if passSlotView.Status != models.BlankStatus {
 			return false
 		}
 	}

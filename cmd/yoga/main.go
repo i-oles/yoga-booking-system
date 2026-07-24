@@ -18,7 +18,6 @@ import (
 	"main/internal/application/pendingbookings"
 	"main/internal/application/reminder"
 	"main/internal/domain/repositories"
-	"main/internal/domain/services"
 	"main/internal/infrastructure/configuration"
 	"main/internal/infrastructure/generator/token"
 	dbModels "main/internal/infrastructure/models/db"
@@ -64,10 +63,10 @@ import (
 
 type Components struct {
 	unitOfWork             repositories.IUnitOfWork
-	classesService         services.IClassesService
-	bookingsService        services.IBookingsService
-	pendingBookingsService services.IPendingBookingsService
-	passesService          services.IPassesService
+	classesService         classes.IService
+	bookingsService        bookings.IService
+	pendingBookingsService pendingbookings.IService
+	passesService          passes.IService
 	bookingsRepo           repositories.IBookings
 	pendingBookingsRepo    repositories.IPendingBookings
 	contactsRepo           repositories.IContacts
@@ -200,23 +199,21 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	)
 
 	unitOfWork := sqliteRepo.NewUnitOfWork(database)
-	passManager := passes.PassManager{}
 
-	locationResolver := location.NewMemoryResolver()
+	locationResolver := location.NewLinkProvider()
 
 	classesService := classes.NewService(
 		classesRepo,
 		bookingsRepo,
 		unitOfWork,
-		&passManager,
 		emailNotifier,
 		locationResolver,
 		cfg.DomainAddr,
 	)
+
 	bookingsService := bookings.NewService(
 		unitOfWork,
 		bookingsRepo,
-		&passManager,
 		emailNotifier,
 		locationResolver,
 		cfg.DomainAddr,
@@ -229,14 +226,13 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		cfg.DomainAddr,
 	)
 
-	passesService := passes.NewService(passesRepo, bookingsRepo, emailNotifier, &passManager)
+	passesService := passes.NewService(passesRepo, bookingsRepo, emailNotifier)
 
 	reminder := reminder.New(
 		unitOfWork,
 		classesRepo,
 		bookingsRepo,
 		emailNotifier,
-		&passManager,
 		locationResolver,
 		cfg.DomainAddr,
 	)
@@ -257,10 +253,10 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 }
 
 func setupRouter(
-	bookingsService services.IBookingsService,
-	classesService services.IClassesService,
-	pendingBookingsService services.IPendingBookingsService,
-	passesService services.IPassesService,
+	bookingsService bookings.IService,
+	classesService classes.IService,
+	pendingBookingsService pendingbookings.IService,
+	passesService passes.IService,
 	bookingsRepo repositories.IBookings,
 	pendingBookingsRepo repositories.IPendingBookings,
 	contactsRepo repositories.IContacts,

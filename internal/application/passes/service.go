@@ -3,12 +3,13 @@ package passes
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"main/internal/application"
 	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services/passes"
 
 	"github.com/google/uuid"
 )
@@ -17,20 +18,17 @@ type service struct {
 	passesRepo   repositories.IPasses
 	bookingsRepo repositories.IBookings
 	notifier     notifier.INotifier
-	passManager  application.IPassManager
 }
 
 func NewService(
 	passesRepo repositories.IPasses,
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
-	passManager application.IPassManager,
 ) *service {
 	return &service{
 		passesRepo:   passesRepo,
 		bookingsRepo: bookingsRepo,
 		notifier:     notifier,
-		passManager:  passManager,
 	}
 }
 
@@ -70,7 +68,7 @@ func (s *service) ActivatePass(
 
 		if params.InitialAssignedSlots != len(bookingsToAssignToPass) {
 			return models.PassActivation{}, api.ErrValidation(
-				fmt.Errorf("number of initialUsedSlots should be exactly equal to number of bookingsToAssignToPass: %d != %d",
+				fmt.Errorf("initialUsedSlots should be equal to bookingsToAssignToPass: %d != %d",
 					params.InitialAssignedSlots,
 					len(bookingsToAssignToPass),
 				),
@@ -90,7 +88,7 @@ func (s *service) ActivatePass(
 		}
 	}
 
-	passSlots := s.passManager.BuildPassSlots(bookingsToAssignToPass, params.TotalSlots)
+	passSlots := passes.BuildPassSlots(bookingsToAssignToPass, params.TotalSlots, time.Now())
 
 	err = s.notifier.NotifyPassActivation(params.Email, passSlots)
 	if err != nil {

@@ -3,7 +3,7 @@ package home
 import (
 	"net/http"
 
-	"main/internal/domain/services"
+	"main/internal/application/classes"
 	"main/internal/interfaces/http/html/dto"
 	viewErrs "main/internal/interfaces/http/html/errs"
 
@@ -13,13 +13,13 @@ import (
 const classViewLimit = 4
 
 type handler struct {
-	classesService   services.IClassesService
+	classesService   classes.IService
 	viewErrorHandler viewErrs.IErrorHandler
 	isVacation       bool
 }
 
 func NewHandler(
-	classesService services.IClassesService,
+	classesService classes.IService,
 	viewErrorHandler viewErrs.IErrorHandler,
 	isVacation bool,
 ) *handler {

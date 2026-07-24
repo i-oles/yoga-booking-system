@@ -3,8 +3,8 @@ package createclasses
 import (
 	"net/http"
 
+	"main/internal/application/classes"
 	"main/internal/domain/models"
-	"main/internal/domain/services"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -13,12 +13,12 @@ import (
 )
 
 type handler struct {
-	classesService  services.IClassesService
+	classesService  classes.IService
 	apiErrorHandler apiErrs.IErrorHandler
 }
 
 func NewHandler(
-	classesService services.IClassesService,
+	classesService classes.IService,
 	apiErrorHandler apiErrs.IErrorHandler,
 ) *handler {
 	return &handler{

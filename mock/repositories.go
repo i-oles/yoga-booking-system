@@ -11,8 +11,9 @@ package mock
 
 import (
 	context "context"
-	models "main/internal/domain/models"
 	reflect "reflect"
+
+	models "main/internal/domain/models"
 
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
