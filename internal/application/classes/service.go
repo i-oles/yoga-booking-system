@@ -220,7 +220,7 @@ func (s *service) UpdateClass(
 		return ClassData{}, fmt.Errorf("could not get data for class update: %w", err)
 	}
 
-	updatedClass, err := s.classesRepo.Update(ctx, update.ID, change)
+	updatedClass, err := s.classesRepo.Update(ctx, classID, change)
 	if err != nil {
 		return ClassData{}, fmt.Errorf("could not update class: %w", err)
 	}
