@@ -60,6 +60,35 @@ func (s *service) ListClasses(
 		return nil, fmt.Errorf("could not get all classes: %w", err)
 	}
 
+	classPresentations, err := s.buildClassPresentations(ctx, classes)
+	if err != nil {
+		return nil, fmt.Errorf("could build classPresentations: %w", err)
+	}
+
+	if onlyUpcomingClasses {
+		filtered := make([]ClassPresentation, 0, len(classPresentations))
+
+		now := time.Now()
+		for _, class := range classPresentations {
+			if class.StartTime.After(now) {
+				filtered = append(filtered, class)
+			}
+		}
+
+		classPresentations = filtered
+	}
+
+	if classesLimit != nil {
+		limit := min(*classesLimit, len(classPresentations))
+		classPresentations = classPresentations[:limit]
+	}
+
+	return classPresentations, nil
+}
+
+func (s *service) buildClassPresentations(
+	ctx context.Context, classes []models.Class,
+) ([]ClassPresentation, error) {
 	classPresentations := make([]ClassPresentation, 0, len(classes))
 
 	for _, class := range classes {
@@ -83,24 +112,6 @@ func (s *service) ListClasses(
 			Location:        class.Location,
 			LocationLink:    locationLink,
 		})
-	}
-
-	if onlyUpcomingClasses {
-		filtered := make([]ClassPresentation, 0, len(classPresentations))
-
-		now := time.Now()
-		for _, class := range classPresentations {
-			if class.StartTime.After(now) {
-				filtered = append(filtered, class)
-			}
-		}
-
-		classPresentations = filtered
-	}
-
-	if classesLimit != nil {
-		limit := min(*classesLimit, len(classPresentations))
-		classPresentations = classPresentations[:limit]
 	}
 
 	return classPresentations, nil
@@ -161,26 +172,9 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 				return fmt.Errorf("could not delete booking for id %v: %w", booking.ID, err)
 			}
 
-			notifierParams := models.NotifierParams{
-				RecipientFirstName: booking.FirstName,
-				RecipientLastName:  booking.LastName,
-				RecipientEmail:     booking.Email,
-				ClassName:          class.ClassName,
-				ClassLevel:         class.ClassLevel,
-				StartTime:          class.StartTime,
-				Location:           class.Location,
-				LocationLink:       locationLink,
-			}
-
-			if booking.Pass.Exists() {
-				pass := booking.Pass.Get()
-
-				usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
-				if err != nil {
-					return fmt.Errorf("could not get bookings for pass id %d: %w", pass.ID, err)
-				}
-
-				notifierParams.PassSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
+			notifierParams, err := s.buildNotifierParamsForDelete(ctx, repos, booking, class, locationLink)
+			if err != nil {
+				return fmt.Errorf("could not build notifierParams for delete: %w", err)
 			}
 
 			notifierParamsList = append(notifierParamsList, notifierParams)
@@ -205,6 +199,39 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 	}
 
 	return nil
+}
+
+func (s *service) buildNotifierParamsForDelete(
+	ctx context.Context,
+	repos repositories.Repositories,
+	booking models.Booking,
+	class models.Class,
+	locationLink string,
+) (models.NotifierParams, error) {
+	notifierParams := models.NotifierParams{
+		RecipientFirstName: booking.FirstName,
+		RecipientLastName:  booking.LastName,
+		RecipientEmail:     booking.Email,
+		ClassName:          class.ClassName,
+		ClassLevel:         class.ClassLevel,
+		StartTime:          class.StartTime,
+		Location:           class.Location,
+		LocationLink:       locationLink,
+	}
+
+	if booking.Pass.Exists() {
+		pass := booking.Pass.Get()
+
+		usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
+		if err != nil {
+			return models.NotifierParams{},
+				fmt.Errorf("could not get bookings for pass id %d: %w", pass.ID, err)
+		}
+
+		notifierParams.PassSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
+	}
+
+	return notifierParams, nil
 }
 
 func (s *service) UpdateClass(
