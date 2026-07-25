@@ -210,37 +210,17 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 func (s *service) UpdateClass(
 	ctx context.Context, classID uuid.UUID, update UpdateClassCommand,
 ) (ClassData, error) {
-	existingClasses, err := s.classesRepo.List(ctx)
+	err := s.ensureClassUpdate(ctx, classID, update)
 	if err != nil {
-		if errors.Is(err, repositoryError.ErrNotFound) {
-			return ClassData{}, api.ErrNotFound(err)
-		}
-
-		return ClassData{}, fmt.Errorf("could not get existing classes: %w", err)
+		return ClassData{}, fmt.Errorf("update class not possible: %w", err)
 	}
 
-	if update.StartTime != nil {
-		err := validateClassStartTime(*update.StartTime, existingClasses)
-		if err != nil {
-			return ClassData{}, api.ErrValidation(err)
-		}
-	}
-
-	_, err = s.classesRepo.Get(ctx, classID)
-	if err != nil {
-		if errors.Is(err, repositoryError.ErrNotFound) {
-			return ClassData{}, api.ErrNotFound(err)
-		}
-
-		return ClassData{}, fmt.Errorf("could not get class for class_id %v: %w", classID, err)
-	}
-
-	updateData, err := getDataForClassUpdate(update)
+	change, err := getDataForClassUpdate(update)
 	if err != nil {
 		return ClassData{}, fmt.Errorf("could not get data for class update: %w", err)
 	}
 
-	updatedClass, err := s.classesRepo.Update(ctx, classID, updateData)
+	updatedClass, err := s.classesRepo.Update(ctx, update.ID, change)
 	if err != nil {
 		return ClassData{}, fmt.Errorf("could not update class: %w", err)
 	}
@@ -250,20 +230,43 @@ func (s *service) UpdateClass(
 		return ClassData{}, fmt.Errorf("could not get class after update: %w", err)
 	}
 
-	bookingCount, err := s.bookingsRepo.CountForClassID(ctx, updatedClass.ID)
+	classData, err := s.buildClassData(ctx, updatedClass)
 	if err != nil {
-		return ClassData{}, fmt.Errorf("could not get bookings for class %v: %w", updatedClass.ID, err)
+		return ClassData{}, fmt.Errorf("could not build classData: %w", err)
 	}
 
-	return ClassData{
-		ID:              updatedClass.ID,
-		StartTime:       updatedClass.StartTime,
-		ClassLevel:      updatedClass.ClassLevel,
-		ClassName:       updatedClass.ClassName,
-		MaxCapacity:     updatedClass.MaxCapacity,
-		CurrentCapacity: updatedClass.MaxCapacity - bookingCount,
-		Location:        updatedClass.Location,
-	}, nil
+	return classData, nil
+}
+
+func (s *service) ensureClassUpdate(
+	ctx context.Context, classID uuid.UUID, update UpdateClassCommand,
+) error {
+	existingClasses, err := s.classesRepo.List(ctx)
+	if err != nil {
+		if errors.Is(err, repositoryError.ErrNotFound) {
+			return api.ErrNotFound(err)
+		}
+
+		return fmt.Errorf("could not get existing classes: %w", err)
+	}
+
+	if update.StartTime != nil {
+		err := validateClassStartTime(*update.StartTime, existingClasses)
+		if err != nil {
+			return api.ErrValidation(err)
+		}
+	}
+
+	_, err = s.classesRepo.Get(ctx, classID)
+	if err != nil {
+		if errors.Is(err, repositoryError.ErrNotFound) {
+			return api.ErrNotFound(err)
+		}
+
+		return fmt.Errorf("could not get class for class_id %v: %w", classID, err)
+	}
+
+	return nil
 }
 
 func (s *service) sendInformationAboutClassUpdateToUsers(
@@ -311,6 +314,23 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 	}
 
 	return nil
+}
+
+func (s *service) buildClassData(ctx context.Context, class models.Class) (ClassData, error) {
+	bookingCount, err := s.bookingsRepo.CountForClassID(ctx, class.ID)
+	if err != nil {
+		return ClassData{}, fmt.Errorf("could not get bookings for class %v: %w", class.ID, err)
+	}
+
+	return ClassData{
+		ID:              class.ID,
+		StartTime:       class.StartTime,
+		ClassLevel:      class.ClassLevel,
+		ClassName:       class.ClassName,
+		MaxCapacity:     class.MaxCapacity,
+		CurrentCapacity: class.MaxCapacity - bookingCount,
+		Location:        class.Location,
+	}, nil
 }
 
 func getDataForClassUpdate(update UpdateClassCommand) (map[string]any, error) {

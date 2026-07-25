@@ -29,7 +29,11 @@ func (r *bookingsRepo) GetByID(
 ) (models.Booking, error) {
 	var SQLBooking db.SQLBooking
 
-	result := r.db.WithContext(ctx).Where("id = ?", bookingID).Preload("Class").Preload("Pass").First(&SQLBooking)
+	result := r.db.WithContext(ctx).
+		Where("id = ?", bookingID).
+		Preload("Class").
+		Preload("Pass").
+		First(&SQLBooking)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -97,7 +101,10 @@ func (r *bookingsRepo) ListWithoutPassByEmail(
 func (r *bookingsRepo) List(ctx context.Context) ([]models.Booking, error) {
 	var SQLBookings []db.SQLBooking
 
-	if err := r.db.WithContext(ctx).Preload("Class").Preload("Pass").Find(&SQLBookings).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Preload("Class").
+		Preload("Pass").
+		Find(&SQLBookings).Error; err != nil {
 		return nil, fmt.Errorf("could not list bookings: %w", err)
 	}
 

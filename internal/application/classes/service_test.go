@@ -245,6 +245,8 @@ var pass1 = domainModels.Pass{
 }
 
 func TestService_ListClasses(t *testing.T) {
+	t.Parallel()
+
 	limitOne := 1
 	negativeLimit := -1
 
@@ -448,6 +450,8 @@ func TestService_ListClasses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -496,6 +500,8 @@ func TestService_ListClasses(t *testing.T) {
 }
 
 func TestService_CreateClasses(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		newClasses    []domainModels.Class
@@ -583,6 +589,8 @@ func TestService_CreateClasses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -630,6 +638,8 @@ func ptr[T any](v T) *T {
 }
 
 func TestService_UpdateClass(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		update UpdateClassCommand
@@ -1195,7 +1205,7 @@ func TestService_UpdateClass(t *testing.T) {
 						"Wyjątkowo musiałem zmienić czas rozpoczęcia zajęć.",
 						gomock.Any(),
 					).
-					Return(fmt.Errorf("smtp error"))
+					Return(errors.New("smtp error"))
 			},
 			wantError:     true,
 			errorContains: "could not get class after update",
@@ -1296,6 +1306,8 @@ func TestService_UpdateClass(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -1374,6 +1386,8 @@ func mockTransaction(
 }
 
 func TestService_DeleteClass(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		msg   *string
@@ -1548,7 +1562,7 @@ func TestService_DeleteClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					ListByClassID(gomock.Any(), futureClass.ID).
-					Return(nil, fmt.Errorf("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1577,7 +1591,7 @@ func TestService_DeleteClass(t *testing.T) {
 
 				locationLinkProvider.EXPECT().
 					GetLink(futureClass.Location).
-					Return("", fmt.Errorf("maps error"))
+					Return("", errors.New("maps error"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1610,7 +1624,7 @@ func TestService_DeleteClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					Delete(gomock.Any(), bookingWithoutPass.ID).
-					Return(fmt.Errorf("db error"))
+					Return(errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1647,7 +1661,7 @@ func TestService_DeleteClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					ListByPassID(gomock.Any(), pass1.ID).
-					Return(nil, fmt.Errorf("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1676,7 +1690,7 @@ func TestService_DeleteClass(t *testing.T) {
 
 				classRepo.EXPECT().
 					Delete(gomock.Any(), futureClass.ID).
-					Return(fmt.Errorf("db error"))
+					Return(errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1694,7 +1708,7 @@ func TestService_DeleteClass(t *testing.T) {
 			) {
 				uow.EXPECT().
 					WithTransaction(gomock.Any(), gomock.Any()).
-					Return(fmt.Errorf("transaction failed"))
+					Return(errors.New("transaction failed"))
 			},
 			wantError:     true,
 			errorContains: "delete class transaction failed",
@@ -1739,7 +1753,7 @@ func TestService_DeleteClass(t *testing.T) {
 						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
 						"Cancelled",
 					).
-					Return(fmt.Errorf("smtp error"))
+					Return(errors.New("smtp error"))
 			},
 			wantError:     true,
 			errorContains: "smtp error",
@@ -1748,6 +1762,8 @@ func TestService_DeleteClass(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 

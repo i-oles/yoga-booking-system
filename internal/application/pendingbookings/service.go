@@ -53,10 +53,7 @@ func (s *service) CreatePendingBooking(
 
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
 		err := s.ensurePendingBookingCreationAllowed(
-			ctx,
-			repos,
-			pendingBookingParams.ClassID,
-			pendingBookingParams.Email,
+			ctx, repos, pendingBookingParams.ClassID, pendingBookingParams.Email,
 		)
 		if err != nil {
 			return fmt.Errorf("pending booking creation not allowed: %w", err)
@@ -169,15 +166,24 @@ func (s *service) checkClassAvailability(
 	}
 
 	if bookingCount == class.MaxCapacity {
-		return models.Class{}, viewErrors.ErrClassFullyBooked(classID, fmt.Errorf("no spots left in class with id: %d", classID))
+		return models.Class{},
+			viewErrors.ErrClassFullyBooked(
+				classID, fmt.Errorf("no spots left in class with id: %d", classID),
+			)
 	}
 
 	if class.StartTime.Before(time.Now()) {
-		return models.Class{}, viewErrors.ErrClassExpired(classID, fmt.Errorf("class %s has expired at %v", classID, class.StartTime))
+		return models.Class{},
+			viewErrors.ErrClassExpired(
+				classID, fmt.Errorf("class %s has expired at %v", classID, class.StartTime),
+			)
 	}
 
 	if bookingCount == 0 && time.Until(class.StartTime) < deadlineBeforeClassStart {
-		return models.Class{}, viewErrors.ErrTooLateToBook(classID, fmt.Errorf("class %s is empty and it is to late to book", class.ID))
+		return models.Class{},
+			viewErrors.ErrTooLateToBook(
+				classID, fmt.Errorf("class %s is empty and it is to late to book", class.ID),
+			)
 	}
 
 	return class, nil

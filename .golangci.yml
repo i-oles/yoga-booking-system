@@ -86,7 +86,6 @@ linters:
     - unparam
     - unused
     - usestdlibvars
-    - varnamelen
     - wastedassign
     - whitespace
     - wrapcheck
@@ -96,6 +95,7 @@ linters:
   disable:
     - tagalign
     - err113
+    - varnamelen
 
   settings:
 
@@ -161,16 +161,21 @@ linters:
           - funlen
           - lll
 
-      - path: internal/application/classes/service_test.go
+      - path: .*_test\.go
         linters:
           - typecheck
           - funlen
           - gocyclo
           - gochecknoglobals
+          - maintidx
 
       - path: internal/application/classes/service.go
         linters:
           - typecheck
+
+      - path: internal/domain/repositories/repositories.go
+        linters:
+          - interfacebloat
 
       - path: assets/example/send_confirmation_email.go
         linters:

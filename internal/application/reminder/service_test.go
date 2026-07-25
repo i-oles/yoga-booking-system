@@ -6,6 +6,8 @@ import (
 )
 
 func TestIsTimeToRemind(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 4, 5, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
@@ -52,6 +54,8 @@ func TestIsTimeToRemind(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := isTimeToRemind(tt.start, now)
 			if got != tt.want {
 				t.Errorf("got %v, want %v", got, tt.want)
@@ -61,6 +65,8 @@ func TestIsTimeToRemind(t *testing.T) {
 }
 
 func TestIsBookedSameOrPreviousDayAsClassDay(t *testing.T) {
+	t.Parallel()
+
 	loc := time.UTC
 
 	tests := []struct {
@@ -103,6 +109,8 @@ func TestIsBookedSameOrPreviousDayAsClassDay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := isBookedSameOrPreviousDayAsClassDay(tt.a, tt.b)
 			if got != tt.want {
 				t.Errorf("got %v, want %v", got, tt.want)

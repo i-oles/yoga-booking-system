@@ -13,7 +13,7 @@ const (
 	HourLayout = "15:04"
 )
 
-func ConvertToWarsawTime(t time.Time) (time.Time, error) { //nolint
+func ConvertToWarsawTime(t time.Time) (time.Time, error) {
 	loc, err := time.LoadLocation("Europe/Warsaw")
 	if err != nil {
 		return time.Time{}, fmt.Errorf("error while loading location: %w", err)
@@ -22,7 +22,7 @@ func ConvertToWarsawTime(t time.Time) (time.Time, error) { //nolint
 	return t.In(loc), nil
 }
 
-func ConvertClassTime(startTime time.Time) (weekDay, startDate, startHour string, err error) {
+func ConvertClassTime(startTime time.Time) (string, string, string, error) {
 	warsawTime, err := ConvertToWarsawTime(startTime)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error while converting time to warsaw time: %w", err)

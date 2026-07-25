@@ -2,6 +2,7 @@ package emails
 
 import (
 	"net/http"
+	"strings"
 
 	"main/internal/infrastructure/sender/memory"
 
@@ -17,10 +18,11 @@ func NewHandler(storage *memory.Storage) *handler {
 }
 
 func (h *handler) Handle(ctx *gin.Context) {
-	var views string
+	var builder strings.Builder
+
 	for _, view := range h.storage.GetViews() {
-		views += view
+		builder.WriteString(view)
 	}
 
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(views))
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(builder.String()))
 }
