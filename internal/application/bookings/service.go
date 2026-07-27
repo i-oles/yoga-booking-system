@@ -210,6 +210,7 @@ func (s *service) createBooking(
 		Email:             pendingBooking.Email,
 		CreatedAt:         time.Now().UTC(),
 		ConfirmationToken: pendingBooking.ConfirmationToken,
+		Class:             pendingBooking.Class,
 	}
 
 	for _, pass := range passes {
