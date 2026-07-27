@@ -9,6 +9,8 @@ import (
 )
 
 func TestBuildPassSlots(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 7, 23, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
@@ -150,6 +152,8 @@ func TestBuildPassSlots(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := BuildPassSlots(
 				tt.bookings,
 				tt.totalSlots,

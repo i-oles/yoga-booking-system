@@ -19,7 +19,7 @@ func NewUnitOfWork(db *gorm.DB) *unitOfWork {
 
 func (u *unitOfWork) WithTransaction(
 	ctx context.Context,
-	fn func(repos repositories.Repositories) error, //nolint
+	fn func(repos repositories.Repositories) error,
 ) error {
 	err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		repos := repositories.Repositories{

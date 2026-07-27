@@ -44,11 +44,7 @@ func (s *service) ActivatePass(
 			)
 	}
 
-	pass, err := s.passesRepo.Insert(
-		ctx,
-		params.Email,
-		params.TotalSlots,
-	)
+	pass, err := s.passesRepo.Insert(ctx, params.Email, params.TotalSlots)
 	if err != nil {
 		return models.PassActivation{}, fmt.Errorf("could not insert pass for %s: %w", params.Email, err)
 	}
@@ -62,8 +58,7 @@ func (s *service) ActivatePass(
 			ctx, params.Email, params.InitialAssignedSlots,
 		)
 		if err != nil {
-			return models.PassActivation{},
-				fmt.Errorf("could not list bookings for email %s: %w", params.Email, err)
+			return models.PassActivation{}, fmt.Errorf("could not ListWithoutPass: %w", err)
 		}
 
 		if params.InitialAssignedSlots != len(bookingsToAssignToPass) {

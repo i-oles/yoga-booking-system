@@ -10,6 +10,8 @@ import (
 )
 
 func TestGlobalRateLimit(t *testing.T) {
+	t.Parallel()
+
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -38,6 +40,8 @@ func TestGlobalRateLimit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			limiter := rate.NewLimiter(rate.Limit(1), 2)
 
 			router := gin.New()

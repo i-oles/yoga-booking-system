@@ -59,6 +59,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		ClassName:   dtoUpdateClass.ClassName,
 		MaxCapacity: dtoUpdateClass.MaxCapacity,
 		Location:    dtoUpdateClass.Location,
+		Message:     dtoUpdateClass.Message,
 	}
 
 	classUpdateCommand, err := h.classesService.UpdateClass(ctx, parsedUUID, update)
