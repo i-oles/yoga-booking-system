@@ -96,6 +96,7 @@ linters:
     - tagalign
     - err113
     - varnamelen
+    - godox
 
   settings:
 

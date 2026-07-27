@@ -28,9 +28,7 @@ func NewHandler(
 	}
 }
 
-// TODO: not sure if it's safe to not return classID to pending_booking.tmpl
-// when you change button to not return home page
-// but just to swap htmx pending booking then check all error handling in this endpoint.
+// TODO: check if you really need to pass ClassID to template here.
 func (h *handler) Handle(ginCtx *gin.Context) {
 	var form dto.PendingBookingForm
 	if err := ginCtx.ShouldBind(&form); err != nil {

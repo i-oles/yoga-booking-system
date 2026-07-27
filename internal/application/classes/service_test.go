@@ -703,6 +703,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Update class start time",
 			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
+				Message:   ptr("test message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -742,7 +743,7 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyClassUpdate(
 						gomock.Any(),
-						"Wyjątkowo musiałem zmienić czas rozpoczęcia zajęć.",
+						"test message",
 						gomock.Any(),
 					).
 					Return(nil)
@@ -765,6 +766,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Update class location",
 			update: UpdateClassCommand{
 				Location: ptr(otoJogaStudio),
+				Message:  ptr("some message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -804,7 +806,7 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyClassUpdate(
 						gomock.Any(),
-						"Wyjątkowo musiałem zmienić lokalizację zajęć.",
+						"some message",
 						gomock.Any(),
 					).
 					Return(nil)
@@ -824,10 +826,9 @@ func TestService_UpdateClass(t *testing.T) {
 			},
 		},
 		{
-			name: "Update class start time and location",
+			name: "Validation error - empty msg when start time update",
 			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
-				Location:  ptr(otoJogaStudio),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -835,58 +836,24 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
-				updatedClass := futureClass
-				updatedClass.StartTime = futureTime3
-				updatedClass.Location = otoJogaStudio
-
-				classRepo.EXPECT().
-					List(gomock.Any()).
-					Return([]domainModels.Class{pastClass}, nil)
-
-				classRepo.EXPECT().
-					Get(gomock.Any(), futureClass.ID).
-					Return(futureClass, nil)
-
-				classRepo.EXPECT().
-					Update(
-						gomock.Any(),
-						futureClass.ID,
-						map[string]any{
-							"start_time": futureTime3,
-							"location":   otoJogaStudio,
-						},
-					).
-					Return(updatedClass, nil)
-
-				bookingsRepo.EXPECT().
-					ListByClassID(gomock.Any(), futureClass.ID).
-					Return([]domainModels.Booking{bookingWithoutPass}, nil)
-
-				locationLinkProvider.EXPECT().
-					GetLink(otoJogaStudio).
-					Return("link-x", nil)
-
-				notifier.EXPECT().
-					NotifyClassUpdate(
-						gomock.Any(),
-						"Wyjątkowo musiałem zmienić lokalizację i czas rozpoczęcia zajęć.",
-						gomock.Any(),
-					).
-					Return(nil)
-
-				bookingsRepo.EXPECT().
-					CountForClassID(gomock.Any(), futureClass.ID).
-					Return(2, nil)
 			},
-			want: ClassData{
-				ID:              futureClass.ID,
-				StartTime:       futureTime3,
-				ClassLevel:      futureClass.ClassLevel,
-				ClassName:       futureClass.ClassName,
-				CurrentCapacity: 3,
-				MaxCapacity:     futureClass.MaxCapacity,
-				Location:        otoJogaStudio,
+			wantError:     true,
+			errorContains: "message cannot be empty when updating location or class startTime",
+		},
+		{
+			name: "Validation error - empty msg when location update",
+			update: UpdateClassCommand{
+				Location: ptr(otoJogaStudio),
 			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+			},
+			wantError:     true,
+			errorContains: "message cannot be empty when updating location or class startTime",
 		},
 		{
 			name:   "Validation error - empty update",
@@ -912,6 +879,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Validation error - expired class start time",
 			update: UpdateClassCommand{
 				StartTime: ptr(pastTime),
+				Message:   ptr("some reason"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -930,6 +898,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Validation error - class with the same start time already exists",
 			update: UpdateClassCommand{
 				StartTime: ptr(futureTime2),
+				Message:   ptr("some message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -1081,6 +1050,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Repository list bookings error",
 			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
+				Message:   ptr("new message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -1120,6 +1090,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Location resolver error",
 			update: UpdateClassCommand{
 				Location: ptr(otoJogaStudio),
+				Message:  ptr("message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -1163,6 +1134,7 @@ func TestService_UpdateClass(t *testing.T) {
 			name: "Notifier error",
 			update: UpdateClassCommand{
 				StartTime: ptr(futureTime3),
+				Message:   ptr("message"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -1202,7 +1174,7 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyClassUpdate(
 						gomock.Any(),
-						"Wyjątkowo musiałem zmienić czas rozpoczęcia zajęć.",
+						"message",
 						gomock.Any(),
 					).
 					Return(errors.New("smtp error"))

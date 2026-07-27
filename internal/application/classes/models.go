@@ -13,6 +13,7 @@ type UpdateClassCommand struct {
 	ClassName   *string
 	MaxCapacity *int
 	Location    *string
+	Message     *string
 }
 
 type BookingCancellationClass struct {

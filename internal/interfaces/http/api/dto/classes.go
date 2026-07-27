@@ -34,6 +34,7 @@ type UpdateClassRequest struct {
 	ClassName   *string    `json:"class_name"`
 	MaxCapacity *int       `json:"max_capacity"`
 	Location    *string    `json:"location"`
+	Message     *string    `json:"message"`
 }
 
 type UpdateClassURI struct {

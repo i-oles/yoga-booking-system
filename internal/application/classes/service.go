@@ -147,23 +147,13 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 			return fmt.Errorf("could not get classes for classID %v: %w", classID, err)
 		}
 
-		if len(bookings) > 0 && msg == nil {
-			return api.ErrValidation(
-				errors.New("reason msg can not be empty, when classes has bookings"),
-			)
+		if err := validateDeleteMessage(bookings, msg); err != nil {
+			return fmt.Errorf("could not validate delete message for classID %v: %w", classID, err)
 		}
 
-		var class models.Class
-
-		var locationLink string
-
-		if len(bookings) > 0 {
-			class = bookings[0].Class
-
-			locationLink, err = s.locationResolver.GetLink(class.Location)
-			if err != nil {
-				return fmt.Errorf("could not get location link for location: %s", class.Location)
-			}
+		locationLink, err := s.getLocationLink(bookings)
+		if err != nil {
+			return fmt.Errorf("could not get locationLink: %w", err)
 		}
 
 		for _, booking := range bookings {
@@ -172,7 +162,7 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 				return fmt.Errorf("could not delete booking for id %v: %w", booking.ID, err)
 			}
 
-			notifierParams, err := s.buildNotifierParamsForDelete(ctx, repos, booking, class, locationLink)
+			notifierParams, err := s.buildNotifierParamsForDelete(ctx, repos, booking, locationLink)
 			if err != nil {
 				return fmt.Errorf("could not build notifierParams for delete: %w", err)
 			}
@@ -191,31 +181,53 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 		return fmt.Errorf("delete class transaction failed: %w", err)
 	}
 
-	for _, notifierParams := range notifierParamsList {
-		err = s.notifier.NotifyClassCancellation(notifierParams, *msg)
-		if err != nil {
-			return fmt.Errorf("could not notify class cancellation with %+v: %w", notifierParams, err)
-		}
+	err = s.notifyClassCancellation(notifierParamsList, msg)
+	if err != nil {
+		return fmt.Errorf("could not notify class cancellation: %w", err)
 	}
 
 	return nil
+}
+
+func validateDeleteMessage(bookings []models.Booking, msg *string) error {
+	if len(bookings) > 0 && msg == nil {
+		return api.ErrValidation(
+			errors.New("reason msg can not be empty, when classes has bookings"),
+		)
+	}
+
+	return nil
+}
+
+func (s *service) getLocationLink(bookings []models.Booking) (string, error) {
+	if len(bookings) == 0 {
+		return "", nil
+	}
+
+	location := bookings[0].Class.Location
+
+	locationLink, err := s.locationResolver.GetLink(location)
+	if err != nil {
+		return "", fmt.Errorf("could not get location link for location %q: %w", location, err)
+	}
+
+	return locationLink, nil
 }
 
 func (s *service) buildNotifierParamsForDelete(
 	ctx context.Context,
 	repos repositories.Repositories,
 	booking models.Booking,
-	class models.Class,
 	locationLink string,
 ) (models.NotifierParams, error) {
 	notifierParams := models.NotifierParams{
 		RecipientFirstName: booking.FirstName,
 		RecipientLastName:  booking.LastName,
 		RecipientEmail:     booking.Email,
-		ClassName:          class.ClassName,
-		ClassLevel:         class.ClassLevel,
-		StartTime:          class.StartTime,
-		Location:           class.Location,
+		ClassName:          booking.Class.ClassName,
+		ClassLevel:         booking.Class.ClassLevel,
+		StartTime:          booking.Class.StartTime,
+		Location:           booking.Class.Location,
 		LocationLink:       locationLink,
 	}
 
@@ -232,6 +244,19 @@ func (s *service) buildNotifierParamsForDelete(
 	}
 
 	return notifierParams, nil
+}
+
+func (s *service) notifyClassCancellation(
+	paramsList []models.NotifierParams,
+	msg *string,
+) error {
+	for _, params := range paramsList {
+		if err := s.notifier.NotifyClassCancellation(params, *msg); err != nil {
+			return fmt.Errorf("could not notify class cancellation with %+v: %w", params, err)
+		}
+	}
+
+	return nil
 }
 
 func (s *service) UpdateClass(
@@ -268,6 +293,12 @@ func (s *service) UpdateClass(
 func (s *service) ensureClassUpdate(
 	ctx context.Context, classID uuid.UUID, update UpdateClassCommand,
 ) error {
+	if (update.Location != nil || update.StartTime != nil) && update.Message == nil {
+		return api.ErrValidation(
+			errors.New("message cannot be empty when updating location or class startTime"),
+		)
+	}
+
 	existingClasses, err := s.classesRepo.List(ctx)
 	if err != nil {
 		if errors.Is(err, repositoryError.ErrNotFound) {
@@ -308,11 +339,6 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 		return fmt.Errorf("could not get bookings for class %v: %w", updatedClass.ID, err)
 	}
 
-	msg, err := setMessageForNotification(update.StartTime, update.Location)
-	if err != nil {
-		return fmt.Errorf("could not set msg for notification: %w", err)
-	}
-
 	locationLink, err := s.locationResolver.GetLink(updatedClass.Location)
 	if err != nil {
 		return fmt.Errorf("could not get location link for location: %s", updatedClass.Location)
@@ -334,7 +360,7 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 			"%s/bookings/%s/cancel_form?token=%s", s.domainAddr, booking.ID, booking.ConfirmationToken,
 		)
 
-		err = s.notifier.NotifyClassUpdate(notifierParams, msg, cancellationLink)
+		err = s.notifier.NotifyClassUpdate(notifierParams, *update.Message, cancellationLink)
 		if err != nil {
 			return fmt.Errorf("could not notify class update to with %+v: %w", notifierParams, err)
 		}
@@ -387,26 +413,6 @@ func getDataForClassUpdate(update UpdateClassCommand) (map[string]any, error) {
 	}
 
 	return updateData, nil
-}
-
-// TODO: move polish from here (keep all this messages somewhere in notifier?)
-func setMessageForNotification(
-	startTime *time.Time,
-	location *string,
-) (string, error) {
-	if location != nil && startTime != nil {
-		return "Wyjątkowo musiałem zmienić lokalizację i czas rozpoczęcia zajęć.", nil
-	}
-
-	if location != nil {
-		return "Wyjątkowo musiałem zmienić lokalizację zajęć.", nil
-	}
-
-	if startTime != nil {
-		return "Wyjątkowo musiałem zmienić czas rozpoczęcia zajęć.", nil
-	}
-
-	return "", errors.New("message for notification should not be empty")
 }
 
 func validateClasses(newClasses, existingClasses []models.Class) error {

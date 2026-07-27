@@ -39,3 +39,6 @@ jobs:
 
       - name: Test
         run: make test
+
+      - linter: Linter
+        run: make lint

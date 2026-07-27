@@ -65,13 +65,9 @@ func (n *notifier) NotifyPassActivation(email string, passSlots []models.PassSlo
 
 	subject := "Yoga - Twój karnet jest aktywny!"
 
-	msgToRecipient, err := n.buildMsgToRecipient(email, subject, tmpl, tmplData)
+	err = n.sendMessage(email, subject, tmpl, tmplData)
 	if err != nil {
-		return fmt.Errorf("could not build msg to recipient %s: %w", email, err)
-	}
-
-	if err = n.sender.Send(msgToRecipient); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return fmt.Errorf("could not send msg: %w", err)
 	}
 
 	return nil
@@ -98,13 +94,9 @@ func (n *notifier) NotifyConfirmationLink(
 
 	subject := fmt.Sprintf("Yoga (%s) - Potwierdź swoją rezerwację!", classStartTimeDetails.startDate)
 
-	msgToRecipient, err := n.buildMsgToRecipient(email, subject, tmpl, tmplData)
+	err = n.sendMessage(email, subject, tmpl, tmplData)
 	if err != nil {
-		return fmt.Errorf("could not build msg to recipient %s: %w", email, err)
-	}
-
-	if err = n.sender.Send(msgToRecipient); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return fmt.Errorf("could not send msg: %w", err)
 	}
 
 	return nil
@@ -215,13 +207,9 @@ func (n *notifier) NotifyClassUpdate(
 		classStartTimeDetails.startDate,
 	)
 
-	msgToRecipient, err := n.buildMsgToRecipient(params.RecipientEmail, subject, tmpl, tmplData)
+	err = n.sendMessage(params.RecipientEmail, subject, tmpl, tmplData)
 	if err != nil {
-		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
-	}
-
-	if err = n.sender.Send(msgToRecipient); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return fmt.Errorf("could not send msg: %w", err)
 	}
 
 	return nil
@@ -246,13 +234,9 @@ func (n *notifier) NotifyClassCancellation(params models.NotifierParams, msg str
 
 	subject := fmt.Sprintf("Yoga (%s) - zajęcia odwołane!", classStartTimeDetails.startDate)
 
-	msgToRecipient, err := n.buildMsgToRecipient(params.RecipientEmail, subject, tmpl, tmplData)
+	err = n.sendMessage(params.RecipientEmail, subject, tmpl, tmplData)
 	if err != nil {
-		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
-	}
-
-	if err = n.sender.Send(msgToRecipient); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return fmt.Errorf("could not send msg: %w", err)
 	}
 
 	return nil
@@ -279,9 +263,23 @@ func (n *notifier) NotifyBookingReminder(
 
 	subject := fmt.Sprintf("Yoga (%s) - przypomnienie o zajęciach!", classStartTimeDetails.startDate)
 
-	msgToRecipient, err := n.buildMsgToRecipient(params.RecipientEmail, subject, tmpl, tmplData)
+	err = n.sendMessage(params.RecipientEmail, subject, tmpl, tmplData)
 	if err != nil {
-		return fmt.Errorf("could not build msg to recipient %s: %w", params.RecipientEmail, err)
+		return fmt.Errorf("could not send msg: %w", err)
+	}
+
+	return nil
+}
+
+func (n *notifier) sendMessage(
+	email string,
+	subject string,
+	tmpl *template.Template,
+	tmplData any,
+) error {
+	msgToRecipient, err := n.buildMsgToRecipient(email, subject, tmpl, tmplData)
+	if err != nil {
+		return fmt.Errorf("could not build msg to recipient %s: %w", email, err)
 	}
 
 	if err = n.sender.Send(msgToRecipient); err != nil {

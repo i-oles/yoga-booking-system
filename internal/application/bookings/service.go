@@ -49,29 +49,24 @@ func NewService(
 
 func (s *service) CreateBooking(ctx context.Context, token string) (BookingCreation, error) {
 	var (
-		pendingBooking models.PendingBooking
-		bookingID      uuid.UUID
-		passSlots      []models.PassSlot
+		booking   models.Booking
+		passSlots []models.PassSlot
 	)
 
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
 		var err error
 
-		pendingBooking, err = s.validatePendingBooking(ctx, token, repos)
+		pendingBooking, err := s.validatePendingBooking(ctx, token, repos)
 		if err != nil {
 			return fmt.Errorf("could not validate pendingBooking: %w", err)
 		}
 
-		_, err = repos.Contacts.Insert(
-			ctx, pendingBooking.Email, pendingBooking.FirstName, pendingBooking.LastName,
-		)
+		err = s.saveContact(ctx, repos, pendingBooking)
 		if err != nil {
-			if !errors.Is(err, errs.ErrAlreadyExist) {
-				return fmt.Errorf("could not insert contact: %w", err)
-			}
+			return fmt.Errorf("could not insert contact: %w", err)
 		}
 
-		booking, err := s.createBooking(ctx, pendingBooking, repos)
+		booking, err = s.createBooking(ctx, pendingBooking, repos)
 		if err != nil {
 			return fmt.Errorf("could not insert booking: %w", err)
 		}
@@ -83,26 +78,30 @@ func (s *service) CreateBooking(ctx context.Context, token string) (BookingCreat
 			}
 		}
 
-		bookingID = booking.ID
-
 		return nil
 	})
 	if err != nil {
 		return BookingCreation{}, fmt.Errorf("create booking transaction failed: %w", err)
 	}
 
-	locationLink, err := s.locationLinkProvider.GetLink(pendingBooking.Class.Location)
-	if err != nil {
-		return BookingCreation{}, fmt.Errorf("could not get link for: %s", pendingBooking.Class.Location)
-	}
-
-	err = s.sendConfirmation(pendingBooking, passSlots, locationLink, token, bookingID)
+	locationLink, err := s.locationLinkProvider.GetLink(booking.Class.Location)
 	if err != nil {
 		return BookingCreation{},
-			fmt.Errorf("could not send confirmation email %s: %w", pendingBooking.Email, err)
+			fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	return buildBookingCreation(pendingBooking, locationLink), nil
+	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
+	if err != nil {
+		return BookingCreation{}, fmt.Errorf("could not build notifierParams: %w", err)
+	}
+
+	err = s.sendConfirmation(booking, notifierParams, token)
+	if err != nil {
+		return BookingCreation{},
+			fmt.Errorf("could not send confirmation email %s: %w", booking.Email, err)
+	}
+
+	return buildBookingCreation(booking, locationLink), nil
 }
 
 func (s *service) validatePendingBooking(
@@ -148,6 +147,23 @@ func (s *service) validatePendingBooking(
 	}
 
 	return pendingBooking, nil
+}
+
+func (s *service) saveContact(
+	ctx context.Context,
+	repos repositories.Repositories,
+	pendingBooking models.PendingBooking,
+) error {
+	_, err := repos.Contacts.Insert(
+		ctx, pendingBooking.Email, pendingBooking.FirstName, pendingBooking.LastName,
+	)
+	if err != nil {
+		if !errors.Is(err, errs.ErrAlreadyExist) {
+			return fmt.Errorf("could not insert contact: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *service) checkClassAvailability(
@@ -232,26 +248,12 @@ func (s *service) buildPassSlots(
 }
 
 func (s *service) sendConfirmation(
-	pendingBooking models.PendingBooking,
-	passSlots []models.PassSlot,
-	locationLink string,
+	booking models.Booking,
+	notifierParams models.NotifierParams,
 	token string,
-	bookingID uuid.UUID,
 ) error {
-	notifierParams := models.NotifierParams{
-		RecipientEmail:     pendingBooking.Email,
-		RecipientFirstName: pendingBooking.FirstName,
-		RecipientLastName:  pendingBooking.LastName,
-		ClassName:          pendingBooking.Class.ClassName,
-		ClassLevel:         pendingBooking.Class.ClassLevel,
-		StartTime:          pendingBooking.Class.StartTime,
-		Location:           pendingBooking.Class.Location,
-		LocationLink:       locationLink,
-		PassSlots:          passSlots,
-	}
-
 	cancellationLink := fmt.Sprintf(
-		"%s/bookings/%s/cancel_form?token=%s", s.domainAddr, bookingID, token,
+		"%s/bookings/%s/cancel_form?token=%s", s.domainAddr, booking.ID, token,
 	)
 
 	err := s.notifier.NotifyBookingConfirmation(notifierParams, cancellationLink)
@@ -263,16 +265,16 @@ func (s *service) sendConfirmation(
 }
 
 func buildBookingCreation(
-	pendingBooking models.PendingBooking, locationLink string,
+	booking models.Booking, locationLink string,
 ) BookingCreation {
 	return BookingCreation{
 		Class: classes.ClassPresentation{
-			ID:           pendingBooking.Class.ID,
-			StartTime:    pendingBooking.Class.StartTime,
-			ClassLevel:   pendingBooking.Class.ClassLevel,
-			ClassName:    pendingBooking.Class.ClassName,
-			MaxCapacity:  pendingBooking.Class.MaxCapacity,
-			Location:     pendingBooking.Class.Location,
+			ID:           booking.Class.ID,
+			StartTime:    booking.Class.StartTime,
+			ClassLevel:   booking.Class.ClassLevel,
+			ClassName:    booking.Class.ClassName,
+			MaxCapacity:  booking.Class.MaxCapacity,
+			Location:     booking.Class.Location,
 			LocationLink: locationLink,
 		},
 	}
@@ -307,14 +309,10 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		}
 
 		if booking.Pass.Exists() {
-			pass := booking.Pass.Get()
-
-			usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
+			passSlots, err = s.buildPassSlots(ctx, booking.Pass.Get(), repos)
 			if err != nil {
-				return fmt.Errorf("could not list bookings by pass id %d: %w", pass.ID, err)
+				return fmt.Errorf("could not build passSlots: %w", err)
 			}
-
-			passSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
 		}
 
 		return nil
@@ -328,16 +326,9 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	notifierParams := models.NotifierParams{
-		RecipientFirstName: booking.FirstName,
-		RecipientLastName:  booking.LastName,
-		RecipientEmail:     booking.Email,
-		ClassName:          booking.Class.ClassName,
-		ClassLevel:         booking.Class.ClassLevel,
-		StartTime:          booking.Class.StartTime,
-		Location:           booking.Class.Location,
-		LocationLink:       locationLink,
-		PassSlots:          passSlots,
+	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
+	if err != nil {
+		return fmt.Errorf("could not build notifierParams: %w", err)
 	}
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
@@ -376,6 +367,24 @@ func (s *service) ensureBookingCancellationAllowed(
 	}
 
 	return booking, nil
+}
+
+func (s *service) buildNotifierParams(
+	booking models.Booking, locationLink string, passSlots []models.PassSlot,
+) (models.NotifierParams, error) {
+	notifierParams := models.NotifierParams{
+		RecipientFirstName: booking.FirstName,
+		RecipientLastName:  booking.LastName,
+		RecipientEmail:     booking.Email,
+		ClassName:          booking.Class.ClassName,
+		ClassLevel:         booking.Class.ClassLevel,
+		StartTime:          booking.Class.StartTime,
+		Location:           booking.Class.Location,
+		LocationLink:       locationLink,
+		PassSlots:          passSlots,
+	}
+
+	return notifierParams, nil
 }
 
 func (s *service) GetBookingCancellationForm(
@@ -434,14 +443,10 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		}
 
 		if booking.Pass.Exists() {
-			pass := booking.Pass.Get()
-
-			usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
+			passSlots, err = s.buildPassSlots(ctx, booking.Pass.Get(), repos)
 			if err != nil {
-				return fmt.Errorf("could not list bookings by pass id %d: %w", pass.ID, err)
+				return fmt.Errorf("could not build passSlots: %w", err)
 			}
-
-			passSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
 		}
 
 		return nil
@@ -455,16 +460,9 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	notifierParams := models.NotifierParams{
-		RecipientFirstName: booking.FirstName,
-		RecipientLastName:  booking.LastName,
-		RecipientEmail:     booking.Email,
-		ClassName:          booking.Class.ClassName,
-		ClassLevel:         booking.Class.ClassLevel,
-		StartTime:          booking.Class.StartTime,
-		Location:           booking.Class.Location,
-		LocationLink:       locationLink,
-		PassSlots:          passSlots,
+	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
+	if err != nil {
+		return fmt.Errorf("could not build notifierParams: %w", err)
 	}
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
