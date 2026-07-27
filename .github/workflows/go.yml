@@ -13,20 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Golang
-        uses: actions/setup-go@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          cache: true
 
       - name: Dependencies
         run: go mod download
@@ -41,4 +32,7 @@ jobs:
         run: make test
 
       - name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.4.0
+          args: ./...
