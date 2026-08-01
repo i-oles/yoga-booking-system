@@ -27,7 +27,7 @@ type testData struct {
 	pendingBooking models.PendingBooking
 	booking        models.Booking
 	contact        models.Contact
-	pass           models.Pass
+	passes         []models.Pass
 }
 
 func newTestData() testData {
@@ -40,7 +40,7 @@ func newTestData() testData {
 		pendingBooking: pendingBooking,
 		booking:        booking,
 		contact:        newContact(),
-		pass:           newPass(),
+		passes:         []models.Pass{newPass()},
 	}
 }
 
@@ -291,7 +291,7 @@ func TestService_CreateBooking(t *testing.T) {
 					class:          class,
 					pendingBooking: pendingBooking,
 					booking:        booking,
-					pass:           newPass(),
+					passes:         []models.Pass{newPass()},
 					contact:        newContact(),
 				}
 			},
@@ -558,10 +558,10 @@ func TestService_CreateBooking(t *testing.T) {
 
 				passesRepo.EXPECT().
 					ListByEmail(gomock.Any(), data.pendingBooking.Email, threeLastPasses).
-					Return([]models.Pass{data.pass}, nil)
+					Return([]models.Pass{data.passes[0]}, nil)
 
 				bookingsRepo.EXPECT().
-					CountForPassID(gomock.Any(), data.pass.ID).
+					CountForPassID(gomock.Any(), data.passes[0].ID).
 					Return(0, assert.AnError)
 			},
 
@@ -1013,11 +1013,11 @@ func TestService_CreateBooking(t *testing.T) {
 
 				passesRepo.EXPECT().
 					ListByEmail(gomock.Any(), data.pendingBooking.Email, threeLastPasses).
-					Return([]models.Pass{data.pass}, nil)
+					Return([]models.Pass{data.passes[0]}, nil)
 
 				bookingsRepo.EXPECT().
-					CountForPassID(gomock.Any(), data.pass.ID).
-					Return(data.pass.TotalSlots-1, nil)
+					CountForPassID(gomock.Any(), data.passes[0].ID).
+					Return(data.passes[0].TotalSlots-1, nil)
 
 				bookingsRepo.EXPECT().
 					Insert(gomock.Any(), gomock.Any()).
@@ -1028,8 +1028,8 @@ func TestService_CreateBooking(t *testing.T) {
 						require.True(t, booking.Pass.Exists())
 						require.True(t, booking.PassID.Exists())
 
-						assert.Equal(t, data.pass.ID, booking.PassID.Get())
-						assert.Equal(t, data.pass.ID, booking.Pass.Get().ID)
+						assert.Equal(t, data.passes[0].ID, booking.PassID.Get())
+						assert.Equal(t, data.passes[0].ID, booking.Pass.Get().ID)
 						assert.Equal(t, data.pendingBooking.ClassID, booking.ClassID)
 						assert.Equal(t, data.pendingBooking.Email, booking.Email)
 						assert.Equal(t, data.pendingBooking.FirstName, booking.FirstName)
@@ -1040,7 +1040,7 @@ func TestService_CreateBooking(t *testing.T) {
 					})
 
 				bookingsRepo.EXPECT().
-					ListByPassID(gomock.Any(), data.pass.ID).
+					ListByPassID(gomock.Any(), data.passes[0].ID).
 					Return([]models.Booking{}, nil)
 
 				locationLinkProvider.EXPECT().
@@ -1131,11 +1131,11 @@ func TestService_CreateBooking(t *testing.T) {
 
 				passesRepo.EXPECT().
 					ListByEmail(gomock.Any(), data.pendingBooking.Email, threeLastPasses).
-					Return([]models.Pass{data.pass}, nil)
+					Return([]models.Pass{data.passes[0]}, nil)
 
 				bookingsRepo.EXPECT().
-					CountForPassID(gomock.Any(), data.pass.ID).
-					Return(data.pass.TotalSlots, nil)
+					CountForPassID(gomock.Any(), data.passes[0].ID).
+					Return(data.passes[0].TotalSlots, nil)
 
 				bookingsRepo.EXPECT().
 					Insert(gomock.Any(), gomock.Any()).
@@ -1151,6 +1151,268 @@ func TestService_CreateBooking(t *testing.T) {
 
 						return booking.ID, nil
 					})
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingConfirmation(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					DoAndReturn(func(
+						params models.NotifierParams,
+						cancellationLink string,
+					) error {
+						assert.Equal(t, data.pendingBooking.Email, params.RecipientEmail)
+						assert.Equal(t, data.pendingBooking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.pendingBooking.LastName, params.RecipientLastName)
+						assert.Equal(t, data.pendingBooking.Class.ClassName, params.ClassName)
+
+						assert.Contains(t, cancellationLink, "/bookings/")
+						assert.Contains(t, cancellationLink, "/cancel_form?token="+testToken)
+
+						return nil
+					})
+			},
+			assert: func(
+				t *testing.T,
+				data testData,
+				got BookingCreation,
+			) {
+				t.Helper()
+
+				assert.Equal(t, data.class.ID, got.Class.ID)
+				assert.Equal(t, data.class.StartTime, got.Class.StartTime)
+				assert.Equal(t, data.class.ClassName, got.Class.ClassName)
+				assert.Equal(t, data.class.ClassLevel, got.Class.ClassLevel)
+				assert.Equal(t, data.class.MaxCapacity, got.Class.MaxCapacity)
+				assert.Equal(t, data.class.Location, got.Class.Location)
+				assert.Equal(t, testLocationLink, got.Class.LocationLink)
+			},
+		},
+		{
+			name:  "Success booking creation - contact does not exist, two passes - second not full",
+			token: testToken,
+			data: func() testData {
+				testData := newTestData()
+				testData.passes = append(testData.passes, models.Pass{
+					ID:         2,
+					Email:      "john.example@com",
+					TotalSlots: 3,
+					CreatedAt:  time.Now().Add(-time.Hour * 24 * 30),
+				})
+
+				return testData
+			},
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				contactsRepo *mock.MockIContacts,
+				passesRepo *mock.MockIPasses,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					contactsRepo,
+					passesRepo,
+				)
+
+				pendingBookingsRepo.EXPECT().
+					GetByConfirmationToken(gomock.Any(), testToken).
+					Return(data.pendingBooking, nil)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.pendingBooking.ClassID,
+						data.pendingBooking.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), data.pendingBooking.Class.ID).
+					Return(0, nil)
+
+				contactsRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						data.pendingBooking.Email,
+						data.pendingBooking.FirstName,
+						data.pendingBooking.LastName,
+					).
+					Return(data.contact, nil)
+
+				passesRepo.EXPECT().
+					ListByEmail(gomock.Any(), data.pendingBooking.Email, threeLastPasses).
+					Return(data.passes, nil)
+
+				bookingsRepo.EXPECT().
+					CountForPassID(gomock.Any(), data.passes[0].ID).
+					Return(data.passes[0].TotalSlots, nil)
+
+				bookingsRepo.EXPECT().
+					CountForPassID(gomock.Any(), data.passes[1].ID).
+					Return(data.passes[1].TotalSlots-2, nil)
+
+				bookingsRepo.EXPECT().
+					Insert(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(
+						_ context.Context,
+						booking models.Booking,
+					) (uuid.UUID, error) {
+						require.True(t, booking.Pass.Exists())
+						require.True(t, booking.PassID.Exists())
+
+						assert.Equal(t, data.passes[1].ID, booking.PassID.Get())
+						assert.Equal(t, data.passes[1].ID, booking.Pass.Get().ID)
+						assert.Equal(t, data.pendingBooking.ClassID, booking.ClassID)
+						assert.Equal(t, data.pendingBooking.Email, booking.Email)
+						assert.Equal(t, data.pendingBooking.FirstName, booking.FirstName)
+						assert.Equal(t, data.pendingBooking.LastName, booking.LastName)
+						assert.Equal(t, data.pendingBooking.ConfirmationToken, booking.ConfirmationToken)
+
+						return booking.ID, nil
+					})
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), data.passes[1].ID).
+					Return([]models.Booking{newBooking(newPendingBooking(newClass())), data.booking}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingConfirmation(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					DoAndReturn(func(
+						params models.NotifierParams,
+						cancellationLink string,
+					) error {
+						assert.Equal(t, data.pendingBooking.Email, params.RecipientEmail)
+						assert.Equal(t, data.pendingBooking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.pendingBooking.LastName, params.RecipientLastName)
+						assert.Equal(t, data.pendingBooking.Class.ClassName, params.ClassName)
+
+						assert.Contains(t, cancellationLink, "/bookings/")
+						assert.Contains(t, cancellationLink, "/cancel_form?token="+testToken)
+
+						return nil
+					})
+			},
+			assert: func(
+				t *testing.T,
+				data testData,
+				got BookingCreation,
+			) {
+				t.Helper()
+
+				assert.Equal(t, data.class.ID, got.Class.ID)
+				assert.Equal(t, data.class.StartTime, got.Class.StartTime)
+				assert.Equal(t, data.class.ClassName, got.Class.ClassName)
+				assert.Equal(t, data.class.ClassLevel, got.Class.ClassLevel)
+				assert.Equal(t, data.class.MaxCapacity, got.Class.MaxCapacity)
+				assert.Equal(t, data.class.Location, got.Class.Location)
+				assert.Equal(t, testLocationLink, got.Class.LocationLink)
+			},
+		},
+		{
+			name:  "Success booking creation - contact does not exist, two passes - first not full pass",
+			token: testToken,
+			data: func() testData {
+				testData := newTestData()
+				testData.passes = append(testData.passes, models.Pass{
+					ID:         2,
+					Email:      "john.example@com",
+					TotalSlots: 3,
+					CreatedAt:  time.Now().Add(-time.Hour * 24 * 30),
+				})
+
+				return testData
+			},
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				contactsRepo *mock.MockIContacts,
+				passesRepo *mock.MockIPasses,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					contactsRepo,
+					passesRepo,
+				)
+
+				pendingBookingsRepo.EXPECT().
+					GetByConfirmationToken(gomock.Any(), testToken).
+					Return(data.pendingBooking, nil)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.pendingBooking.ClassID,
+						data.pendingBooking.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), data.pendingBooking.Class.ID).
+					Return(0, nil)
+
+				contactsRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						data.pendingBooking.Email,
+						data.pendingBooking.FirstName,
+						data.pendingBooking.LastName,
+					).
+					Return(data.contact, nil)
+
+				passesRepo.EXPECT().
+					ListByEmail(gomock.Any(), data.pendingBooking.Email, threeLastPasses).
+					Return(data.passes, nil)
+
+				bookingsRepo.EXPECT().
+					CountForPassID(gomock.Any(), data.passes[0].ID).
+					Return(data.passes[0].TotalSlots-7, nil)
+
+				bookingsRepo.EXPECT().
+					Insert(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(
+						_ context.Context,
+						booking models.Booking,
+					) (uuid.UUID, error) {
+						require.True(t, booking.Pass.Exists())
+						require.True(t, booking.PassID.Exists())
+
+						assert.Equal(t, data.passes[0].ID, booking.PassID.Get())
+						assert.Equal(t, data.passes[0].ID, booking.Pass.Get().ID)
+						assert.Equal(t, data.pendingBooking.ClassID, booking.ClassID)
+						assert.Equal(t, data.pendingBooking.Email, booking.Email)
+						assert.Equal(t, data.pendingBooking.FirstName, booking.FirstName)
+						assert.Equal(t, data.pendingBooking.LastName, booking.LastName)
+						assert.Equal(t, data.pendingBooking.ConfirmationToken, booking.ConfirmationToken)
+
+						return booking.ID, nil
+					})
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), data.passes[0].ID).
+					Return([]models.Booking{newBooking(newPendingBooking(newClass())), data.booking}, nil)
 
 				locationLinkProvider.EXPECT().
 					GetLink(data.booking.Class.Location).
