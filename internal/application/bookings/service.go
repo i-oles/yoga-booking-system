@@ -90,10 +90,7 @@ func (s *service) CreateBooking(ctx context.Context, token string) (BookingCreat
 			fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
-	if err != nil {
-		return BookingCreation{}, fmt.Errorf("could not build notifierParams: %w", err)
-	}
+	notifierParams := s.buildNotifierParams(booking, locationLink, passSlots)
 
 	err = s.sendConfirmation(booking, notifierParams, token)
 	if err != nil {
@@ -327,10 +324,7 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
-	if err != nil {
-		return fmt.Errorf("could not build notifierParams: %w", err)
-	}
+	notifierParams := s.buildNotifierParams(booking, locationLink, passSlots)
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
 	if err != nil {
@@ -372,8 +366,8 @@ func (s *service) ensureBookingCancellationAllowed(
 
 func (s *service) buildNotifierParams(
 	booking models.Booking, locationLink string, passSlots []models.PassSlot,
-) (models.NotifierParams, error) {
-	notifierParams := models.NotifierParams{
+) models.NotifierParams {
+	return models.NotifierParams{
 		RecipientFirstName: booking.FirstName,
 		RecipientLastName:  booking.LastName,
 		RecipientEmail:     booking.Email,
@@ -384,8 +378,6 @@ func (s *service) buildNotifierParams(
 		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
-
-	return notifierParams, nil
 }
 
 func (s *service) GetBookingCancellationForm(
@@ -461,10 +453,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 		return fmt.Errorf("could not resolve location link for: %s", booking.Class.Location)
 	}
 
-	notifierParams, err := s.buildNotifierParams(booking, locationLink, passSlots)
-	if err != nil {
-		return fmt.Errorf("could not build notifierParams: %w", err)
-	}
+	notifierParams := s.buildNotifierParams(booking, locationLink, passSlots)
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
 	if err != nil {
