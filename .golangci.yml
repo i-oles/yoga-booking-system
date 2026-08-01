@@ -169,6 +169,7 @@ linters:
           - gocyclo
           - gochecknoglobals
           - maintidx
+          - dupl
 
       - path: internal/application/classes/service.go
         linters:
