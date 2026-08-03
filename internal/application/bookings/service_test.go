@@ -1859,6 +1859,7 @@ func TestService_CancelBooking(t *testing.T) {
 						assert.Equal(t, data.booking.Class.Location, params.Location)
 						assert.Equal(t, testLocationLink, params.LocationLink)
 						assert.Empty(t, params.PassSlots)
+
 						return nil
 					})
 			},
