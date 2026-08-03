@@ -101,7 +101,7 @@ func newContact() models.Contact {
 	}
 }
 
-func mockTransaction(
+func mockCreateBookingTransaction(
 	uow *mock.MockIUnitOfWork,
 	pendingBookingsRepo *mock.MockIPendingBookings,
 	bookingsRepo *mock.MockIBookings,
@@ -162,7 +162,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -190,7 +190,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -219,7 +219,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -256,7 +256,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -306,7 +306,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -344,7 +344,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -385,7 +385,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -427,7 +427,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -477,7 +477,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -528,7 +528,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -583,7 +583,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -638,7 +638,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -700,7 +700,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -767,7 +767,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -873,7 +873,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -979,7 +979,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -1097,7 +1097,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -1217,7 +1217,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -1350,7 +1350,7 @@ func TestService_CreateBooking(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 				notifier *mock.MockINotifier,
 			) {
-				mockTransaction(
+				mockCreateBookingTransaction(
 					unitOfWork,
 					pendingBookingsRepo,
 					bookingsRepo,
@@ -1963,6 +1963,368 @@ func TestService_CancelBooking(t *testing.T) {
 				context.Background(),
 				data.booking.ID,
 				tt.token,
+			)
+
+			if tt.wantError {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.errorContains)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func mockDeleteBookingTransaction(
+	uow *mock.MockIUnitOfWork,
+	bookingsRepo *mock.MockIBookings,
+) {
+	uow.EXPECT().
+		WithTransaction(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(
+			ctx context.Context,
+			fn func(repositories.Repositories) error,
+		) error {
+			return fn(repositories.Repositories{
+				Bookings: bookingsRepo,
+			})
+		})
+}
+
+func TestService_DeleteBooking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		data  func() testData
+		mocks func(
+			data testData,
+			unitOfWork *mock.MockIUnitOfWork,
+			bookingsRepo *mock.MockIBookings,
+			locationLinkProvider *mock.MockILinkProvider,
+			notifier *mock.MockINotifier,
+		)
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name: "Failure booking deletion - booking not found error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(models.Booking{}, errs.ErrNotFound)
+			},
+			wantError:     true,
+			errorContains: "could get booking for id",
+		},
+		{
+			name: "Failure booking deletion - repository get booking error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(models.Booking{}, assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could get booking for id",
+		},
+		{
+			name: "Failure booking deletion - delete booking not found error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(errs.ErrNoRowsAffected)
+			},
+			wantError:     true,
+			errorContains: "could not delete booking",
+		},
+		{
+			name: "Failure booking deletion - delete booking repository error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not delete booking",
+		},
+		{
+			name: "Failure booking deletion - list bookings by pass error",
+			data: func() testData {
+				data := newTestData()
+
+				pass := newPass()
+				data.booking.Pass = optional.Of(pass)
+
+				return data
+			},
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), data.booking.Pass.Get().ID).
+					Return(nil, assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not build passSlots",
+		},
+		{
+			name: "Failure booking deletion - location link provider error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return("", assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not resolve location link",
+		},
+		{
+			name: "Failure booking deletion - notifier error",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					Return(assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not nofify booking cancellation",
+		},
+		{
+			name: "Success booking deletion - booking without pass",
+			data: newTestData,
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(unitOfWork, bookingsRepo)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					DoAndReturn(func(params models.NotifierParams) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.Class.ClassName, params.ClassName)
+						assert.Equal(t, testLocationLink, params.LocationLink)
+						assert.Empty(t, params.PassSlots)
+
+						return nil
+					})
+			},
+		},
+		{
+			name: "Success booking deletion - booking with pass",
+			data: func() testData {
+				data := newTestData()
+
+				pass := newPass()
+				data.booking.Pass = optional.Of(pass)
+				data.booking.PassID = optional.Of(pass.ID)
+
+				return data
+			},
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), data.booking.Pass.Get().ID).
+					Return([]models.Booking{}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					DoAndReturn(func(params models.NotifierParams) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.booking.LastName, params.RecipientLastName)
+
+						assert.Equal(t, data.booking.Class.ClassName, params.ClassName)
+						assert.Equal(t, data.booking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.booking.Class.StartTime, params.StartTime)
+						assert.Equal(t, data.booking.Class.Location, params.Location)
+
+						assert.Equal(t, testLocationLink, params.LocationLink)
+
+						assert.NotEmpty(t, params.PassSlots)
+						assert.Len(
+							t,
+							params.PassSlots,
+							data.booking.Pass.Get().TotalSlots,
+						)
+
+						assert.Equal(
+							t,
+							models.BlankStatus,
+							params.PassSlots[0].Status,
+						)
+
+						return nil
+					})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			unitOfWork := mock.NewMockIUnitOfWork(ctrl)
+			bookingsRepo := mock.NewMockIBookings(ctrl)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
+			notifier := mock.NewMockINotifier(ctrl)
+
+			data := tt.data()
+
+			tt.mocks(
+				data,
+				unitOfWork,
+				bookingsRepo,
+				locationLinkProvider,
+				notifier,
+			)
+
+			service := NewService(
+				unitOfWork,
+				bookingsRepo,
+				notifier,
+				locationLinkProvider,
+				testDomain,
+			)
+
+			err := service.DeleteBooking(
+				context.Background(),
+				data.booking.ID,
 			)
 
 			if tt.wantError {
