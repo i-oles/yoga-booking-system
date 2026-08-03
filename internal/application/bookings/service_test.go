@@ -1549,10 +1549,6 @@ func TestService_CancelBooking(t *testing.T) {
 			locationLinkProvider *mock.MockILinkProvider,
 			notifier *mock.MockINotifier,
 		)
-		assert func(
-			t *testing.T,
-			data testData,
-		)
 		wantError     bool
 		errorContains string
 	}{
@@ -1822,6 +1818,110 @@ func TestService_CancelBooking(t *testing.T) {
 			wantError:     true,
 			errorContains: "could not notify booking cancellation",
 		},
+		{
+			name:  "Success booking cancellation - booking without pass",
+			token: testToken,
+			data:  newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockCancelBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					DoAndReturn(func(params models.NotifierParams) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.booking.LastName, params.RecipientLastName)
+						assert.Equal(t, data.booking.Class.ClassName, params.ClassName)
+						assert.Equal(t, data.booking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.booking.Class.StartTime, params.StartTime)
+						assert.Equal(t, data.booking.Class.Location, params.Location)
+						assert.Equal(t, testLocationLink, params.LocationLink)
+						assert.Empty(t, params.PassSlots)
+						return nil
+					})
+			},
+		},
+		{
+			name:  "Success booking cancellation - booking with pass",
+			token: testToken,
+			data: func() testData {
+				data := newTestData()
+				pass := newPass()
+				data.booking.Pass = optional.Of(pass)
+				data.booking.PassID = optional.Of(pass.ID)
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockCancelBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(gomock.Any(), data.booking.Pass.Get().ID).
+					Return([]models.Booking{}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					DoAndReturn(func(params models.NotifierParams) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.booking.LastName, params.RecipientLastName)
+						assert.Equal(t, data.booking.Class.ClassName, params.ClassName)
+						assert.Equal(t, data.booking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.booking.Class.StartTime, params.StartTime)
+						assert.Equal(t, data.booking.Class.Location, params.Location)
+						assert.Equal(t, testLocationLink, params.LocationLink)
+						assert.NotEmpty(t, params.PassSlots)
+						assert.Len(t, params.PassSlots, data.booking.Pass.Get().TotalSlots)
+						assert.Equal(t, models.BlankStatus, params.PassSlots[0].Status)
+
+						return nil
+					})
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1872,10 +1972,6 @@ func TestService_CancelBooking(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-
-			if tt.assert != nil {
-				tt.assert(t, data)
-			}
 		})
 	}
 }
