@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Pass struct {
@@ -31,9 +29,4 @@ type PassActivationParams struct {
 	Email                string
 	InitialAssignedSlots int
 	TotalSlots           int
-}
-
-type PassActivation struct {
-	Pass               Pass
-	BookingIDsAssigned []uuid.UUID
 }

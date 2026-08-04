@@ -169,7 +169,6 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	classesRepo := sqliteRepo.NewClassesRepo(database)
 	bookingsRepo := sqliteRepo.NewBookingsRepo(database)
 	pendingBookingsRepo := sqliteRepo.NewPendingBookingsRepo(database)
-	passesRepo := sqliteRepo.NewPassesRepo(database)
 	contactsRepo := sqliteRepo.NewContactsRepo(database)
 
 	tokenGenerator := token.NewGenerator()
@@ -226,7 +225,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		cfg.DomainAddr,
 	)
 
-	passesService := passes.NewService(passesRepo, bookingsRepo, emailNotifier)
+	passesService := passes.NewService(unitOfWork, emailNotifier)
 
 	reminder := reminder.New(
 		unitOfWork,

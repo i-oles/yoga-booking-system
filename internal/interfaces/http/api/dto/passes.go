@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"main/internal/application/passes"
 	"main/internal/domain/models"
 	"main/pkg/converter"
 
@@ -49,7 +50,7 @@ func ToPassDTO(pass models.Pass) (PassDTO, error) {
 	}, nil
 }
 
-func ToPassActivationResp(passActivation models.PassActivation) (ActivatePassResponse, error) {
+func ToPassActivationResp(passActivation passes.PassActivation) (ActivatePassResponse, error) {
 	passDTO, err := ToPassDTO(passActivation.Pass)
 	if err != nil {
 		return ActivatePassResponse{}, fmt.Errorf("error PassDTO cration failed: %w", err)

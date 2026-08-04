@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"main/internal/application/passes"
-	"main/internal/domain/models"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -27,24 +26,21 @@ func NewHandler(
 }
 
 func (h *handler) Handle(ginCtx *gin.Context) {
-	var dtoActivatePassRequest dto.ActivatePassRequest
+	var req dto.ActivatePassRequest
 
-	err := ginCtx.ShouldBindJSON(&dtoActivatePassRequest)
+	err := ginCtx.ShouldBindJSON(&req)
 	if err != nil {
 		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
 		return
 	}
 
-	params := models.PassActivationParams{
-		Email:                dtoActivatePassRequest.Email,
-		InitialAssignedSlots: dtoActivatePassRequest.InitialAssignedSlots,
-		TotalSlots:           dtoActivatePassRequest.TotalSlots,
-	}
-
-	ctx := ginCtx.Request.Context()
-
-	passActivation, err := h.passesService.ActivatePass(ctx, params)
+	passActivation, err := h.passesService.ActivatePass(
+		ginCtx.Request.Context(),
+		req.Email,
+		req.InitialAssignedSlots,
+		req.TotalSlots,
+	)
 	if err != nil {
 		h.apiErrorHandler.Handle(ginCtx, err)
 
