@@ -1042,7 +1042,7 @@ func TestService_CreateBooking(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					ListByPassID(gomock.Any(), data.passes[0].ID).
-					Return([]models.Booking{}, nil)
+					Return([]models.Booking{data.booking}, nil)
 
 				locationLinkProvider.EXPECT().
 					GetLink(data.booking.Class.Location).
@@ -1060,7 +1060,10 @@ func TestService_CreateBooking(t *testing.T) {
 						assert.Equal(t, data.pendingBooking.Email, params.RecipientEmail)
 						assert.Equal(t, data.pendingBooking.FirstName, params.RecipientFirstName)
 						assert.Equal(t, data.pendingBooking.LastName, params.RecipientLastName)
+						assert.Equal(t, data.pendingBooking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.pendingBooking.Class.StartTime, params.StartTime)
 						assert.Equal(t, data.pendingBooking.Class.ClassName, params.ClassName)
+						assertPassSlots(t, params.PassSlots, 0, 7, 1)
 
 						assert.Contains(t, cancellationLink, "/bookings/")
 						assert.Contains(t, cancellationLink, "/cancel_form?token="+testToken)
@@ -1303,6 +1306,11 @@ func TestService_CreateBooking(t *testing.T) {
 						assert.Equal(t, data.pendingBooking.FirstName, params.RecipientFirstName)
 						assert.Equal(t, data.pendingBooking.LastName, params.RecipientLastName)
 						assert.Equal(t, data.pendingBooking.Class.ClassName, params.ClassName)
+						assert.Equal(t, data.pendingBooking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.pendingBooking.Class.StartTime, params.StartTime)
+						assert.Equal(t, data.pendingBooking.Class.Location, params.Location)
+
+						assertPassSlots(t, params.PassSlots, 0, 1, 2)
 
 						assert.Contains(t, cancellationLink, "/bookings/")
 						assert.Contains(t, cancellationLink, "/cancel_form?token="+testToken)
@@ -1389,7 +1397,7 @@ func TestService_CreateBooking(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					CountForPassID(gomock.Any(), data.passes[0].ID).
-					Return(data.passes[0].TotalSlots-7, nil)
+					Return(1, nil)
 
 				bookingsRepo.EXPECT().
 					Insert(gomock.Any(), gomock.Any()).
@@ -1432,6 +1440,11 @@ func TestService_CreateBooking(t *testing.T) {
 						assert.Equal(t, data.pendingBooking.FirstName, params.RecipientFirstName)
 						assert.Equal(t, data.pendingBooking.LastName, params.RecipientLastName)
 						assert.Equal(t, data.pendingBooking.Class.ClassName, params.ClassName)
+						assert.Equal(t, data.pendingBooking.Class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.pendingBooking.Class.StartTime, params.StartTime)
+						assert.Equal(t, data.pendingBooking.Class.Location, params.Location)
+
+						assertPassSlots(t, params.PassSlots, 0, 6, 2)
 
 						assert.Contains(t, cancellationLink, "/bookings/")
 						assert.Contains(t, cancellationLink, "/cancel_form?token="+testToken)
@@ -2274,17 +2287,111 @@ func TestService_DeleteBooking(t *testing.T) {
 
 						assert.Equal(t, testLocationLink, params.LocationLink)
 
-						assert.NotEmpty(t, params.PassSlots)
 						assert.Len(
 							t,
 							params.PassSlots,
 							data.booking.Pass.Get().TotalSlots,
 						)
 
+						assertPassSlots(
+							t,
+							params.PassSlots,
+							0,
+							8,
+							0,
+						)
+
+						return nil
+					})
+			},
+		},
+		{
+			name: "Success booking deletion - booking with pass and existing bookings",
+			data: func() testData {
+				data := newTestData()
+
+				pass := newPass()
+				data.booking.Pass = optional.Of(pass)
+				data.booking.PassID = optional.Of(pass.ID)
+
+				return data
+			},
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				bookingsRepo *mock.MockIBookings,
+				locationLinkProvider *mock.MockILinkProvider,
+				notifier *mock.MockINotifier,
+			) {
+				mockDeleteBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+
+				bookingsRepo.EXPECT().
+					Delete(gomock.Any(), data.booking.ID).
+					Return(nil)
+
+				existingBooking1 := newBooking(newPendingBooking(newClass()))
+				existingBooking1.Class.StartTime = time.Now().Add(-time.Hour * 24 * 7)
+
+				existingBooking2 := newBooking(newPendingBooking(newClass()))
+				existingBooking2.Class.StartTime = time.Now().Add(time.Hour * 24 * 7)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(
+						gomock.Any(),
+						data.booking.Pass.Get().ID,
+					).
+					Return(
+						[]models.Booking{
+							existingBooking1,
+							existingBooking2,
+						},
+						nil,
+					)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.booking.Class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingCancellation(gomock.Any()).
+					DoAndReturn(func(params models.NotifierParams) error {
 						assert.Equal(
 							t,
-							models.BlankStatus,
-							params.PassSlots[0].Status,
+							data.booking.Email,
+							params.RecipientEmail,
+						)
+
+						assert.Equal(
+							t,
+							data.booking.Class.ClassName,
+							params.ClassName,
+						)
+
+						assert.Equal(
+							t,
+							testLocationLink,
+							params.LocationLink,
+						)
+
+						assert.Len(
+							t,
+							params.PassSlots,
+							data.booking.Pass.Get().TotalSlots,
+						)
+
+						assertPassSlots(
+							t,
+							params.PassSlots,
+							1,
+							6,
+							1,
 						)
 
 						return nil
@@ -2337,4 +2444,35 @@ func TestService_DeleteBooking(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func assertPassSlots(
+	t *testing.T,
+	slots []models.PassSlot,
+	expectedUsed int,
+	expectedBlank int,
+	expectedFuture int,
+) {
+	t.Helper()
+
+	var used int
+
+	var blank int
+
+	var future int
+
+	for _, slot := range slots {
+		switch slot.Status {
+		case models.PastStatus:
+			used++
+		case models.BlankStatus:
+			blank++
+		case models.FutureStatus:
+			future++
+		}
+	}
+
+	assert.Equal(t, expectedUsed, used)
+	assert.Equal(t, expectedBlank, blank)
+	assert.Equal(t, expectedFuture, future)
 }
