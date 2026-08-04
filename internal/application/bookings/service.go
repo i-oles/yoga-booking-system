@@ -387,7 +387,7 @@ func (s *service) GetBookingCancellationForm(
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			return BookingCancellationForm{}, viewErrors.ErrBookingNotFound(
-				fmt.Errorf("booking with id %s not found: %w", bookingID, err),
+				fmt.Errorf("booking not found for id %v: %w", bookingID, err),
 			)
 		}
 
@@ -396,7 +396,13 @@ func (s *service) GetBookingCancellationForm(
 	}
 
 	if booking.ConfirmationToken != token {
-		return BookingCancellationForm{}, viewErrors.ErrInvalidCancellationLink(err)
+		return BookingCancellationForm{}, viewErrors.ErrInvalidCancellationLink(
+			fmt.Errorf(
+				"GetBookingCancellationForm failed due to invalid token: %s for email: %s",
+				booking.Email,
+				token,
+			),
+		)
 	}
 
 	class := classes.BookingCancellationClass{
@@ -407,13 +413,11 @@ func (s *service) GetBookingCancellationForm(
 		Location:   booking.Class.Location,
 	}
 
-	cancellationForm := BookingCancellationForm{
+	return BookingCancellationForm{
 		Class:             class,
 		BookingID:         booking.ID,
 		ConfirmationToken: booking.ConfirmationToken,
-	}
-
-	return cancellationForm, nil
+	}, nil
 }
 
 func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error {
