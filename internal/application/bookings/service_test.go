@@ -2476,3 +2476,167 @@ func assertPassSlots(
 	assert.Equal(t, expectedBlank, blank)
 	assert.Equal(t, expectedFuture, future)
 }
+
+func TestService_GetBookingCancellationForm(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		token string
+		data  func() testData
+		mocks func(
+			data testData,
+			bookingsRepo *mock.MockIBookings,
+		)
+		assert func(
+			t *testing.T,
+			data testData,
+			got BookingCancellationForm,
+		)
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name:  "Failure getting booking cancellation form - booking not found error",
+			token: testToken,
+			data:  newTestData,
+			mocks: func(
+				data testData,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(models.Booking{}, errs.ErrNotFound)
+			},
+			wantError:     true,
+			errorContains: "booking not found for id",
+		},
+		{
+			name:  "Failure getting booking cancellation form - repository get booking error",
+			token: testToken,
+			data:  newTestData,
+			mocks: func(
+				data testData,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(models.Booking{}, assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not get booking for id",
+		},
+		{
+			name:  "Failure getting booking cancellation form - invalid cancellation token error",
+			token: "invalid-token",
+			data:  newTestData,
+			mocks: func(
+				data testData,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+			},
+			wantError:     true,
+			errorContains: "failed due to invalid token",
+		},
+		{
+			name:  "Success getting booking cancellation form",
+			token: testToken,
+			data:  newTestData,
+			mocks: func(
+				data testData,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				bookingsRepo.EXPECT().
+					GetByID(gomock.Any(), data.booking.ID).
+					Return(data.booking, nil)
+			},
+			assert: func(
+				t *testing.T,
+				data testData,
+				got BookingCancellationForm,
+			) {
+				t.Helper()
+
+				assert.Equal(t, data.booking.ID, got.BookingID)
+
+				assert.Equal(
+					t,
+					data.booking.ConfirmationToken,
+					got.ConfirmationToken,
+				)
+
+				assert.Equal(t, data.booking.Class.ID, got.Class.ID)
+
+				assert.Equal(
+					t,
+					data.booking.Class.StartTime,
+					got.Class.StartTime,
+				)
+
+				assert.Equal(
+					t,
+					data.booking.Class.ClassLevel,
+					got.Class.ClassLevel,
+				)
+
+				assert.Equal(
+					t,
+					data.booking.Class.ClassName,
+					got.Class.ClassName,
+				)
+
+				assert.Equal(
+					t,
+					data.booking.Class.Location,
+					got.Class.Location,
+				)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			bookingsRepo := mock.NewMockIBookings(ctrl)
+
+			data := tt.data()
+
+			if tt.mocks != nil {
+				tt.mocks(data, bookingsRepo)
+			}
+
+			service := NewService(
+				nil,
+				bookingsRepo,
+				nil,
+				nil,
+				testDomain,
+			)
+
+			got, err := service.GetBookingCancellationForm(
+				context.Background(),
+				data.booking.ID,
+				tt.token,
+			)
+
+			if tt.wantError {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.errorContains)
+
+				return
+			}
+
+			require.NoError(t, err)
+
+			if tt.assert != nil {
+				tt.assert(t, data, got)
+			}
+		})
+	}
+}

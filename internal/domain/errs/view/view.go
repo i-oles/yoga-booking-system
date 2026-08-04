@@ -27,7 +27,11 @@ type BusinessError struct {
 }
 
 func (e *BusinessError) Error() string {
-	return e.Err.Error()
+	if e.Err != nil {
+		return e.Err.Error()
+	}
+
+	return e.Message
 }
 
 func ErrBookingAlreadyExists(classID uuid.UUID, email string, err error) *BusinessError {
