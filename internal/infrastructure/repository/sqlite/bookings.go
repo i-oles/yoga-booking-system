@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type bookingsRepo struct {
@@ -227,22 +226,26 @@ func (r *bookingsRepo) Update(
 	ctx context.Context,
 	bookingID uuid.UUID,
 	update map[string]any,
-) error {
+) (models.Booking, error) {
 	var SQLBooking db.SQLBooking
 
 	result := r.db.WithContext(ctx).
 		Model(&SQLBooking).
-		Clauses(clause.Returning{}).
 		Where("id = ?", bookingID).
 		Updates(update)
 
 	if result.Error != nil {
-		return fmt.Errorf("could not update booking: %w", result.Error)
+		return models.Booking{}, fmt.Errorf("could not update booking: %w", result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("no booking found for id: %s", bookingID)
+		return models.Booking{}, fmt.Errorf("no booking found for id: %s", bookingID)
 	}
 
-	return nil
+	updatedBooking, err := r.GetByID(ctx, bookingID)
+	if err != nil {
+		return models.Booking{}, fmt.Errorf("could not get updated booking: %w", err)
+	}
+
+	return updatedBooking, nil
 }

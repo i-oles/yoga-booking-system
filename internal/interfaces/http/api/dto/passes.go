@@ -7,8 +7,6 @@ import (
 	"main/internal/application/passes"
 	"main/internal/domain/models"
 	"main/pkg/converter"
-
-	"github.com/google/uuid"
 )
 
 type ActivatePassRequest struct {
@@ -18,8 +16,8 @@ type ActivatePassRequest struct {
 }
 
 type ActivatePassResponse struct {
-	Pass               PassDTO     `json:"pass"`
-	BookingIDsAssigned []uuid.UUID `json:"booking_ids_assigned"`
+	Pass            PassDTO           `json:"pass"`
+	UpdatedBookings []BookingResponse `json:"updated_bookings"`
 }
 
 type PassDTO struct {
@@ -50,14 +48,21 @@ func ToPassDTO(pass models.Pass) (PassDTO, error) {
 	}, nil
 }
 
-func ToPassActivationResp(passActivation passes.PassActivation) (ActivatePassResponse, error) {
+func ToPassActivationResp(
+	passActivation passes.PassActivation,
+) (ActivatePassResponse, error) {
 	passDTO, err := ToPassDTO(passActivation.Pass)
 	if err != nil {
-		return ActivatePassResponse{}, fmt.Errorf("error PassDTO cration failed: %w", err)
+		return ActivatePassResponse{}, fmt.Errorf("could not convert pass to dto: %w", err)
+	}
+
+	updatedBookings, err := ToBookingsListResponse(passActivation.UpdatedBookings)
+	if err != nil {
+		return ActivatePassResponse{}, fmt.Errorf("could not convert updated bookings to dto: %w", err)
 	}
 
 	return ActivatePassResponse{
-		Pass:               passDTO,
-		BookingIDsAssigned: passActivation.BookingIDsAssigned,
+		Pass:            passDTO,
+		UpdatedBookings: updatedBookings,
 	}, nil
 }

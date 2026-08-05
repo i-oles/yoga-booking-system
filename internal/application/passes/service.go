@@ -10,8 +10,6 @@ import (
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
 	"main/internal/domain/services/passes"
-
-	"github.com/google/uuid"
 )
 
 type service struct {
@@ -44,9 +42,8 @@ func (s *service) ActivatePass(
 	}
 
 	var (
-		pass                     models.Pass
-		bookingsToAssignToPass   = make([]models.Booking, 0, initialAssignedSlots)
-		bookingIDsAssignedToPass = make([]uuid.UUID, 0, initialAssignedSlots)
+		pass            models.Pass
+		updatedBookings = make([]models.Booking, 0, initialAssignedSlots)
 	)
 
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
@@ -57,33 +54,11 @@ func (s *service) ActivatePass(
 			return fmt.Errorf("could not insert pass for %s: %w", email, err)
 		}
 
-		// user may want to add one or more existing bookings - system needs to assign those to Pass
+		// user may add one or more existing bookings to pass - system needs to update those with pass
 		if initialAssignedSlots > 0 {
-			bookingsToAssignToPass, err = repos.Bookings.ListWithoutPassByEmail(
-				ctx, email, initialAssignedSlots,
-			)
+			updatedBookings, err = s.updateBookingsWithPass(ctx, repos, pass, email, initialAssignedSlots)
 			if err != nil {
-				return fmt.Errorf("could not ListWithoutPass: %w", err)
-			}
-
-			if initialAssignedSlots != len(bookingsToAssignToPass) {
-				return api.ErrValidation(
-					fmt.Errorf("initialUsedSlots should be equal to bookingsToAssignToPass: %d != %d",
-						initialAssignedSlots,
-						len(bookingsToAssignToPass),
-					),
-				)
-			}
-
-			for _, booking := range bookingsToAssignToPass {
-				err = repos.Bookings.Update(ctx, booking.ID, map[string]any{
-					"pass_id": pass.ID,
-				})
-				if err != nil {
-					return fmt.Errorf("could not update booking %s with pass_id %d: %w", booking.ID, pass.ID, err)
-				}
-
-				bookingIDsAssignedToPass = append(bookingIDsAssignedToPass, booking.ID)
+				return fmt.Errorf("could not update bookings with pass: %w", err)
 			}
 		}
 
@@ -93,15 +68,55 @@ func (s *service) ActivatePass(
 		return PassActivation{}, fmt.Errorf("pass activation transaction failed: %w", err)
 	}
 
-	passSlots := passes.BuildPassSlots(bookingsToAssignToPass, totalPassSlots, time.Now())
+	passSlots := passes.BuildPassSlots(updatedBookings, totalPassSlots, time.Now())
 
 	err = s.notifier.NotifyPassActivation(email, passSlots)
 	if err != nil {
-		return PassActivation{}, fmt.Errorf("could notify pass activation with %v: %w", pass, err)
+		return PassActivation{},
+			fmt.Errorf("could notify pass activation for %s with %v: %w", email, passSlots, err)
 	}
 
 	return PassActivation{
-		Pass:               pass,
-		BookingIDsAssigned: bookingIDsAssignedToPass,
+		Pass:            pass,
+		UpdatedBookings: updatedBookings,
 	}, nil
+}
+
+func (s *service) updateBookingsWithPass(
+	ctx context.Context,
+	repos repositories.Repositories,
+	pass models.Pass,
+	email string,
+	initialAssignedSlots int,
+) ([]models.Booking, error) {
+	bookings, err := repos.Bookings.ListWithoutPassByEmail(
+		ctx, email, initialAssignedSlots,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("could not ListWithoutPass: %w", err)
+	}
+
+	if initialAssignedSlots != len(bookings) {
+		return nil, api.ErrValidation(
+			fmt.Errorf("initialUsedSlots should be equal to len bookingsToAssign: %d != %d",
+				initialAssignedSlots,
+				len(bookings),
+			),
+		)
+	}
+
+	change := map[string]any{"pass_id": pass.ID}
+
+	updatedBookings := make([]models.Booking, 0, len(bookings))
+
+	for _, booking := range bookings {
+		updatedBooking, err := repos.Bookings.Update(ctx, booking.ID, change)
+		if err != nil {
+			return nil, fmt.Errorf("could not update booking %s with pass %d: %w", booking.ID, pass.ID, err)
+		}
+
+		updatedBookings = append(updatedBookings, updatedBooking)
+	}
+
+	return updatedBookings, nil
 }

@@ -35,7 +35,7 @@ type IBookings interface {
 	CountForClassID(ctx context.Context, classID uuid.UUID) (int, error)
 	Insert(ctx context.Context, booking models.Booking) (uuid.UUID, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Update(ctx context.Context, id uuid.UUID, update map[string]any) error
+	Update(ctx context.Context, id uuid.UUID, update map[string]any) (models.Booking, error)
 }
 
 type IPendingBookings interface {
