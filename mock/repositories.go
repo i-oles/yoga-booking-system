@@ -290,11 +290,12 @@ func (mr *MockIBookingsMockRecorder) ListWithoutPassByEmail(ctx, email, limit an
 }
 
 // Update mocks base method.
-func (m *MockIBookings) Update(ctx context.Context, id uuid.UUID, update map[string]any) error {
+func (m *MockIBookings) Update(ctx context.Context, id uuid.UUID, update map[string]any) (models.Booking, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, id, update)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(models.Booking)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.

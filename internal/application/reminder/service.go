@@ -124,31 +124,31 @@ func (s *service) sendReminders(
 
 func (s *service) remindBooking(ctx context.Context, booking models.Booking) error {
 	err := s.unitOfWork.WithTransaction(ctx, func(repos repositories.Repositories) error {
-		update := map[string]any{"reminded_at": time.Now()}
+		change := map[string]any{"reminded_at": time.Now()}
 
-		err := repos.Bookings.Update(ctx, booking.ID, update)
+		updatedBooking, err := repos.Bookings.Update(ctx, booking.ID, change)
 		if err != nil {
-			return fmt.Errorf("could not update booking %v with %v: %w", booking.ID, update, err)
+			return fmt.Errorf("could not update booking %v with %v: %w", booking.ID, change, err)
 		}
 
-		locationLink, err := s.locationLinkProvider.GetLink(booking.Class.Location)
+		locationLink, err := s.locationLinkProvider.GetLink(updatedBooking.Class.Location)
 		if err != nil {
-			return fmt.Errorf("could not get location link for %v: %w", booking.Class.Location, err)
+			return fmt.Errorf("could not get location link for %v: %w", updatedBooking.Class.Location, err)
 		}
 
 		notifierParams := models.NotifierParams{
-			RecipientEmail:     booking.Email,
-			RecipientFirstName: booking.FirstName,
-			RecipientLastName:  booking.LastName,
-			ClassName:          booking.Class.ClassName,
-			ClassLevel:         booking.Class.ClassLevel,
-			StartTime:          booking.Class.StartTime,
-			Location:           booking.Class.Location,
+			RecipientEmail:     updatedBooking.Email,
+			RecipientFirstName: updatedBooking.FirstName,
+			RecipientLastName:  updatedBooking.LastName,
+			ClassName:          updatedBooking.Class.ClassName,
+			ClassLevel:         updatedBooking.Class.ClassLevel,
+			StartTime:          updatedBooking.Class.StartTime,
+			Location:           updatedBooking.Class.Location,
 			LocationLink:       locationLink,
 		}
 
-		if booking.Pass.Exists() {
-			pass := booking.Pass.Get()
+		if updatedBooking.Pass.Exists() {
+			pass := updatedBooking.Pass.Get()
 
 			usedBookings, err := repos.Bookings.ListByPassID(ctx, pass.ID)
 			if err != nil {
@@ -161,7 +161,8 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 		}
 
 		cancellationLink := fmt.Sprintf(
-			"%s/bookings/%s/cancel_form?token=%s", s.domainAddr, booking.ID, booking.ConfirmationToken,
+			"%s/bookings/%s/cancel_form?token=%s",
+			s.domainAddr, updatedBooking.ID, updatedBooking.ConfirmationToken,
 		)
 
 		err = s.notifier.NotifyBookingReminder(notifierParams, cancellationLink)
@@ -170,7 +171,7 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 		}
 
 		slog.Info("Reminder: booking reminded",
-			"email", booking.Email, "reminded_at", update["reminded_at"],
+			"email", booking.Email, "reminded_at", change["reminded_at"],
 		)
 
 		return nil
