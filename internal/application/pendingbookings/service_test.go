@@ -37,9 +37,8 @@ func mockCreatePendingBookingTransaction(
 }
 
 var (
-	testToken        = "token"
-	testLocationLink = "https://google.maps.com"
-	testDomain       = "https://test.pl"
+	testToken  = "token"
+	testDomain = "https://test.pl"
 )
 
 type testData struct {
@@ -392,6 +391,431 @@ func TestService_CreatePendingBooking(t *testing.T) {
 
 			wantError:     true,
 			errorContains: "could not get class",
+		},
+		{
+			name: "Failure pending booking creation - class fully booked",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class.MaxCapacity, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+			},
+
+			wantError:     true,
+			errorContains: "no spots left in class",
+		},
+		{
+			name: "Failure pending booking creation - class expired",
+			data: func() testData {
+				data := newTestData()
+				data.class.StartTime = time.Now().Add(-time.Hour)
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(1, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+			},
+
+			wantError:     true,
+			errorContains: "expired",
+		},
+		{
+			name: "Failure pending booking creation - too late to book",
+			data: func() testData {
+				data := newTestData()
+				data.class.StartTime = time.Now().Add(2 * time.Hour)
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(0, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+			},
+
+			wantError:     true,
+			errorContains: "too late to book",
+		},
+		{
+			name: "Failure pending booking creation - generate confirmation token error",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(1, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+
+				tokenGenerator.EXPECT().
+					Generate(tokenLength).
+					Return("", assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not generate confirmation token",
+		},
+		{
+			name: "Failure pending booking creation - insert pending booking error",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(1, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+
+				tokenGenerator.EXPECT().
+					Generate(tokenLength).
+					Return(testToken, nil)
+
+				pendingBookingsRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					Return(assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not insert pending booking",
+		},
+		{
+			name: "Failure pending booking creation - notifier error",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(1, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+
+				tokenGenerator.EXPECT().
+					Generate(tokenLength).
+					Return(testToken, nil)
+
+				pendingBookingsRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					Return(nil)
+
+				notifier.EXPECT().
+					NotifyConfirmationLink(
+						data.pendingBookingParams.Email,
+						data.pendingBookingParams.FirstName,
+						testDomain+"/bookings?token="+testToken,
+						data.class.StartTime,
+					).
+					Return(assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not notify confirmation link",
+		},
+		{
+			name: "Success pending booking creation",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				tokenGenerator *mock.MockITokenGenerator,
+				pendingBookingsRepo *mock.MockIPendingBookings,
+				bookingsRepo *mock.MockIBookings,
+				classesRepo *mock.MockIClasses,
+				notifier *mock.MockINotifier,
+			) {
+				mockCreatePendingBookingTransaction(
+					unitOfWork,
+					pendingBookingsRepo,
+					bookingsRepo,
+					classesRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					GetByEmailAndClassID(
+						gomock.Any(),
+						data.class.ID,
+						data.pendingBookingParams.Email,
+					).
+					Return(models.Booking{}, errs.ErrNotFound)
+
+				pendingBookingsRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(1, nil)
+
+				classesRepo.EXPECT().
+					Get(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(data.class, nil)
+
+				tokenGenerator.EXPECT().
+					Generate(tokenLength).
+					Return(testToken, nil)
+
+				pendingBookingsRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					DoAndReturn(func(
+						_ context.Context,
+						pendingBooking models.PendingBooking,
+					) error {
+						assert.Equal(t, data.class.ID, pendingBooking.ClassID)
+						assert.Equal(t, data.pendingBookingParams.Email, pendingBooking.Email)
+						assert.Equal(t, data.pendingBookingParams.FirstName, pendingBooking.FirstName)
+						assert.Equal(t, data.pendingBookingParams.LastName, pendingBooking.LastName)
+						assert.Equal(t, testToken, pendingBooking.ConfirmationToken)
+						assert.NotEqual(t, uuid.Nil, pendingBooking.ID)
+						assert.False(t, pendingBooking.CreatedAt.IsZero())
+
+						return nil
+					})
+
+				notifier.EXPECT().
+					NotifyConfirmationLink(
+						data.pendingBookingParams.Email,
+						data.pendingBookingParams.FirstName,
+						testDomain+"/bookings?token="+testToken,
+						data.class.StartTime,
+					).
+					Return(nil)
+			},
 		},
 	}
 
