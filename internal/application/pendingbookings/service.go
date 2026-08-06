@@ -143,7 +143,7 @@ func (s *service) ensurePendingBookingCreationAllowed(
 		return viewErrors.ErrTooManyPendingBookings(
 			classID,
 			email,
-			fmt.Errorf("found %d pending operations per user", count),
+			fmt.Errorf("found %d pending bookings per user", count),
 		)
 	}
 
