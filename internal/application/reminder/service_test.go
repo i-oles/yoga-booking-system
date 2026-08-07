@@ -8,6 +8,7 @@ import (
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
 	"main/mock"
+	"main/pkg/optional"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -32,8 +33,9 @@ func mockRemindBookingTransaction(
 }
 
 var (
-	testToken  = "token"
-	testDomain = "https://test.pl"
+	testToken        = "token"
+	testLocationLink = "https://google.maps.com"
+	testDomain       = "https://test.pl"
 )
 
 type testData struct {
@@ -434,9 +436,254 @@ func TestService_RemindBookings(t *testing.T) {
 					GetLink(data.class.Location).
 					Return("", assert.AnError)
 			},
-
 			wantError:     true,
 			errorContains: "could not get location link",
+		},
+		{
+			name: "Failure remind bookings - list bookings for pass error",
+			data: func() testData {
+				data := newTestData()
+				data.booking.Pass = optional.Of(data.pass)
+				data.booking.PassID = optional.Of(data.pass.ID)
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				mockRemindBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						gomock.Any(),
+					).
+					Return(data.booking, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.class.Location).
+					Return(testLocationLink, nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(
+						gomock.Any(),
+						data.pass.ID,
+					).
+					Return(nil, assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not list bookings for pass",
+		},
+		{
+			name: "Failure remind bookings - notifier error",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				mockRemindBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						gomock.Any(),
+					).
+					Return(data.booking, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingReminder(
+						gomock.Any(),
+						testDomain+"/bookings/"+data.booking.ID.String()+"/cancel_form?token="+testToken,
+					).
+					Return(assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not nofify booking",
+		},
+		{
+			name: "Success remind bookings - reminder without pass",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				mockRemindBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						gomock.Any(),
+					).
+					Return(data.booking, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingReminder(
+						gomock.Any(),
+						testDomain+"/bookings/"+data.booking.ID.String()+"/cancel_form?token="+testToken,
+					).
+					DoAndReturn(func(
+						params models.NotifierParams,
+						cancelURL string,
+					) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.booking.LastName, params.RecipientLastName)
+
+						assert.Equal(t, data.class.ClassName, params.ClassName)
+						assert.Equal(t, data.class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.class.StartTime, params.StartTime)
+						assert.Equal(t, data.class.Location, params.Location)
+						assert.Equal(t, testLocationLink, params.LocationLink)
+
+						assert.Empty(t, params.PassSlots)
+
+						assert.Contains(t, cancelURL, data.booking.ID.String())
+						assert.Contains(t, cancelURL, testToken)
+
+						return nil
+					})
+			},
+		},
+		{
+			name: "Success remind bookings - reminder with pass",
+			data: func() testData {
+				data := newTestData()
+				data.booking.Pass = optional.Of(data.pass)
+				data.booking.PassID = optional.Of(data.pass.ID)
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				mockRemindBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						gomock.Any(),
+					).
+					Return(data.booking, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.class.Location).
+					Return(testLocationLink, nil)
+
+				bookingsRepo.EXPECT().
+					ListByPassID(
+						gomock.Any(),
+						data.pass.ID,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				notifier.EXPECT().
+					NotifyBookingReminder(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					DoAndReturn(func(
+						params models.NotifierParams,
+						cancelURL string,
+					) error {
+						assert.Len(t, params.PassSlots, data.pass.TotalSlots)
+						assert.Contains(t, cancelURL, data.booking.ID.String())
+						assert.Contains(t, cancelURL, testToken)
+
+						return nil
+					})
+			},
 		},
 	}
 
