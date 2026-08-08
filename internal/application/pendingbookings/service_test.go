@@ -495,10 +495,10 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			},
 
 			wantError:     true,
-			errorContains: "expired",
+			errorContains: "has expired at",
 		},
 		{
-			name: "Failure pending booking creation - too late to book",
+			name: "Failure pending booking creation - class empty and too late to book",
 			data: func() testData {
 				data := newTestData()
 				data.class.StartTime = time.Now().Add(2 * time.Hour)
@@ -550,7 +550,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			},
 
 			wantError:     true,
-			errorContains: "too late to book",
+			errorContains: "is empty and too late to book",
 		},
 		{
 			name: "Failure pending booking creation - generate confirmation token error",

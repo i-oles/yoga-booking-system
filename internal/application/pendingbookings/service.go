@@ -182,7 +182,7 @@ func (s *service) checkClassAvailability(
 	if bookingCount == 0 && time.Until(class.StartTime) < deadlineBeforeClassStart {
 		return models.Class{},
 			viewErrors.ErrTooLateToBook(
-				classID, fmt.Errorf("class %s is empty and it is too late to book", class.ID),
+				classID, fmt.Errorf("class %s is empty and too late to book", class.ID),
 			)
 	}
 
