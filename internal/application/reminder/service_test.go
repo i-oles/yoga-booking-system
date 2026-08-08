@@ -131,7 +131,7 @@ func TestService_RemindBookings(t *testing.T) {
 			errorContains: "could not list classes",
 		},
 		{
-			name: "Success remind bookings - no classes",
+			name: "Bookings not reminded - no classes",
 			data: newTestData,
 
 			mocks: func(
@@ -148,7 +148,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - past class ignored",
+			name: "Bookings not reminded - past class ignored",
 			data: func() testData {
 				data := newTestData()
 				data.class.StartTime = time.Now().Add(-time.Hour)
@@ -170,7 +170,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - too early to remind",
+			name: "Bookings not reminded - too early to remind",
 			data: func() testData {
 				data := newTestData()
 				data.class.StartTime = time.Now().Add(48 * time.Hour)
@@ -192,7 +192,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - class without bookings",
+			name: "Bookings not reminded - class without bookings",
 			data: newTestData,
 
 			mocks: func(
@@ -243,7 +243,7 @@ func TestService_RemindBookings(t *testing.T) {
 			errorContains: "could not list bookings",
 		},
 		{
-			name: "Success remind bookings - booking already reminded",
+			name: "Bookings not reminded - booking already reminded",
 			data: func() testData {
 				data := newTestData()
 				now := time.Now()
@@ -273,7 +273,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - booking created on class day",
+			name: "Bookings not reminded - booking created on class day",
 			data: func() testData {
 				data := newTestData()
 
@@ -311,7 +311,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - booking created previous day",
+			name: "Bookings not reminded - booking created previous day",
 			data: func() testData {
 				data := newTestData()
 
@@ -419,18 +419,8 @@ func TestService_RemindBookings(t *testing.T) {
 				)
 
 				bookingsRepo.EXPECT().
-					Update(
-						gomock.Any(),
-						data.booking.ID,
-						gomock.Any(),
-					).
-					DoAndReturn(func(
-						_ context.Context,
-						_ uuid.UUID,
-						_ map[string]any,
-					) (models.Booking, error) {
-						return data.booking, nil
-					})
+					Update(gomock.Any(), data.booking.ID, gomock.Any()).
+					Return(data.booking, nil)
 
 				locationLinkProvider.EXPECT().
 					GetLink(data.class.Location).
@@ -548,7 +538,7 @@ func TestService_RemindBookings(t *testing.T) {
 			errorContains: "could not nofify booking",
 		},
 		{
-			name: "Success remind bookings - reminder without pass",
+			name: "Success remind bookings - booking without pass",
 			data: newTestData,
 
 			mocks: func(
@@ -616,7 +606,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 		},
 		{
-			name: "Success remind bookings - reminder with pass",
+			name: "Success remind bookings - booking with pass",
 			data: func() testData {
 				data := newTestData()
 				data.booking.Pass = optional.Of(data.pass)
@@ -677,6 +667,16 @@ func TestService_RemindBookings(t *testing.T) {
 						params models.NotifierParams,
 						cancelURL string,
 					) error {
+						assert.Equal(t, data.booking.Email, params.RecipientEmail)
+						assert.Equal(t, data.booking.FirstName, params.RecipientFirstName)
+						assert.Equal(t, data.booking.LastName, params.RecipientLastName)
+
+						assert.Equal(t, data.class.ClassName, params.ClassName)
+						assert.Equal(t, data.class.ClassLevel, params.ClassLevel)
+						assert.Equal(t, data.class.StartTime, params.StartTime)
+						assert.Equal(t, data.class.Location, params.Location)
+						assert.Equal(t, testLocationLink, params.LocationLink)
+
 						assert.Len(t, params.PassSlots, data.pass.TotalSlots)
 						assert.Contains(t, cancelURL, data.booking.ID.String())
 						assert.Contains(t, cancelURL, testToken)

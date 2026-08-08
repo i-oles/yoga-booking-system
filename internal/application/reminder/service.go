@@ -106,7 +106,9 @@ func (s *service) sendReminders(
 		return nil
 	}
 
-	slog.Info(fmt.Sprintf("Reminder: found bookings: %d", len(bookings)), "class_id", classID)
+	slog.Info(
+		"Reminder: found bookings", "class_id", classID, "bookings_count", len(bookings),
+	)
 
 	for _, booking := range bookings {
 		if !shouldRemindBooking(booking, classStartTime) {
