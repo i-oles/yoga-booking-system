@@ -143,7 +143,7 @@ func (s *service) ensurePendingBookingCreationAllowed(
 		return viewErrors.ErrTooManyPendingBookings(
 			classID,
 			email,
-			fmt.Errorf("found %d pending operations per user", count),
+			fmt.Errorf("found %d pending bookings per user", count),
 		)
 	}
 
@@ -182,7 +182,7 @@ func (s *service) checkClassAvailability(
 	if bookingCount == 0 && time.Until(class.StartTime) < deadlineBeforeClassStart {
 		return models.Class{},
 			viewErrors.ErrTooLateToBook(
-				classID, fmt.Errorf("class %s is empty and it is to late to book", class.ID),
+				classID, fmt.Errorf("class %s is empty and too late to book", class.ID),
 			)
 	}
 
