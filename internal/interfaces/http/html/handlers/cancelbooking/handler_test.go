@@ -142,6 +142,24 @@ func TestHandler_Handle(t *testing.T) {
 				assert.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
+		{
+			name: "failure - class expired",
+			url:  "/bookings/" + testBookingID.String() + "?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrClassExpired(uuid.New(), assert.AnError)
+
+				service.EXPECT().
+					CancelBooking(gomock.Any(), testBookingID, testToken).
+					Return(fmt.Errorf("cancel booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
 	}
 
 	gin.SetMode(gin.TestMode)
