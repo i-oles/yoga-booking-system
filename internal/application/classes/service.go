@@ -409,7 +409,7 @@ func getDataForClassUpdate(update UpdateClassCommand) (map[string]any, error) {
 	}
 
 	if len(updateData) == 0 {
-		return nil, errors.New("no fields to update class")
+		return nil, api.ErrValidation(errors.New("no fields to update class"))
 	}
 
 	return updateData, nil
