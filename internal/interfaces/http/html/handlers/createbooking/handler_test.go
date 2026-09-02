@@ -1,6 +1,7 @@
 package createbooking
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	"main/internal/application/bookings"
 	"main/internal/application/classes"
+	domainErrs "main/internal/domain/errs/view"
 	viewErrHandler "main/internal/interfaces/http/html/errs/handler"
 	mockbookings "main/mock/bookings"
 
@@ -104,7 +106,47 @@ func TestHandler_Handle(t *testing.T) {
 				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
+		{
+			name: "failure - class fully booked",
+			url:  "/bookings?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrClassFullyBooked(testClass.ID, assert.AnError)
+
+				service.EXPECT().
+					CreateBooking(gomock.Any(), testToken).
+					Return(bookings.BookingCreation{},
+						fmt.Errorf("create booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusConflict, recorder.Code)
+			},
+		},
+		{
+			name: "failure - pending booking not found",
+			url:  "/bookings?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrPendingBookingNotFound(assert.AnError)
+
+				service.EXPECT().
+					CreateBooking(gomock.Any(), testToken).
+					Return(bookings.BookingCreation{},
+						fmt.Errorf("create booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
 	}
+
+	gin.SetMode(gin.TestMode)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -119,8 +161,6 @@ func TestHandler_Handle(t *testing.T) {
 			errorHandler := viewErrHandler.NewErrorHandler()
 
 			handler := NewHandler(service, errorHandler)
-
-			gin.SetMode(gin.TestMode)
 
 			router := gin.New()
 
