@@ -97,7 +97,7 @@ func (s *service) updateBookingsWithPass(
 	}
 
 	if initialAssignedSlots != len(bookings) {
-		return nil, api.ErrValidation(
+		return nil, api.ErrNotEnoughBookingsToAssign(
 			fmt.Errorf("initialUsedSlots should be equal to len bookingsToAssign: %d != %d",
 				initialAssignedSlots,
 				len(bookings),
