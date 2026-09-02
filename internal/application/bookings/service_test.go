@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
 	"main/internal/infrastructure/errs"
 	"main/mock"
 	"main/pkg/optional"
+	"main/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -2019,8 +2021,9 @@ func TestService_DeleteBooking(t *testing.T) {
 			locationLinkProvider *mock.MockILinkProvider,
 			notifier *mock.MockINotifier,
 		)
-		wantError     bool
-		errorContains string
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name: "Failure booking deletion - booking not found error",
@@ -2038,8 +2041,9 @@ func TestService_DeleteBooking(t *testing.T) {
 					GetByID(gomock.Any(), data.booking.ID).
 					Return(models.Booking{}, errs.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "could get booking for id",
+			wantError:        true,
+			errorContains:    errs.ErrNotFound.Error(),
+			wantAPIErrorCode: ptr.Of(api.NotFoundCode),
 		},
 		{
 			name: "Failure booking deletion - repository get booking error",
@@ -2080,8 +2084,9 @@ func TestService_DeleteBooking(t *testing.T) {
 					Delete(gomock.Any(), data.booking.ID).
 					Return(errs.ErrNoRowsAffected)
 			},
-			wantError:     true,
-			errorContains: "could not delete booking",
+			wantError:        true,
+			errorContains:    errs.ErrNoRowsAffected.Error(),
+			wantAPIErrorCode: ptr.Of(api.NotFoundCode),
 		},
 		{
 			name: "Failure booking deletion - delete booking repository error",
@@ -2437,6 +2442,13 @@ func TestService_DeleteBooking(t *testing.T) {
 			if tt.wantError {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
+
+				if tt.wantAPIErrorCode != nil {
+					var apiErr *api.APIError
+
+					require.ErrorAs(t, err, &apiErr)
+					assert.Equal(t, *tt.wantAPIErrorCode, apiErr.Code)
+				}
 
 				return
 			}
