@@ -8,6 +8,7 @@ import (
 
 	"main/internal/application/classes"
 	"main/internal/application/location"
+	"main/internal/domain/errs/api"
 	viewErrors "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/notifier"
@@ -431,11 +432,19 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 
 		booking, err = repos.Bookings.GetByID(ctx, bookingID)
 		if err != nil {
+			if errors.Is(err, errs.ErrNotFound) {
+				return api.ErrNotFound(err)
+			}
+
 			return fmt.Errorf("could get booking for id %s: %w", bookingID, err)
 		}
 
 		err = repos.Bookings.Delete(ctx, bookingID)
 		if err != nil {
+			if errors.Is(err, errs.ErrNoRowsAffected) {
+				return api.ErrNotFound(err)
+			}
+
 			return fmt.Errorf("could not delete booking for id %s: %w", bookingID, err)
 		}
 

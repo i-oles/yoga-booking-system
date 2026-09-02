@@ -20,7 +20,6 @@ func (e errorHandler) Handle(ctx *gin.Context, tmplName string, err error) {
 	if errors.As(err, &businessError) {
 		switch businessError.Code {
 		case domainErrs.BookingNotFoundCode,
-			domainErrs.ClassExpiredCode,
 			domainErrs.ClassEmptyCode:
 			ctx.HTML(http.StatusNotFound, tmplName, gin.H{
 				"ID":    businessError.ClassID,
@@ -29,9 +28,17 @@ func (e errorHandler) Handle(ctx *gin.Context, tmplName string, err error) {
 
 			return
 		case domainErrs.BookingAlreadyExistsCode,
-			domainErrs.TooManyPendingBookingsCode,
-			domainErrs.ClassFullyBookedCode:
+			domainErrs.ClassExpiredCode,
+			domainErrs.ClassFullyBookedCode,
+			domainErrs.TooLateToBook:
 			ctx.HTML(http.StatusConflict, tmplName, gin.H{
+				"ID":    businessError.ClassID,
+				"Error": businessError.Message,
+			})
+
+			return
+		case domainErrs.TooManyPendingBookingsCode:
+			ctx.HTML(http.StatusTooManyRequests, tmplName, gin.H{
 				"ID":    businessError.ClassID,
 				"Error": businessError.Message,
 			})
@@ -54,6 +61,8 @@ func (e errorHandler) Handle(ctx *gin.Context, tmplName string, err error) {
 			ctx.HTML(http.StatusInternalServerError, "err.tmpl", gin.H{
 				"Error": "error_id: " + ctx.GetString("request_id"),
 			})
+
+			return
 		}
 	}
 

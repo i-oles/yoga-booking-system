@@ -36,6 +36,13 @@ func ErrPreviousPassNotFinished(err error) *APIError {
 	}
 }
 
+func ErrNotEnoughBookingsToAssign(err error) *APIError {
+	return &APIError{
+		Code: ConflictCode,
+		Err:  err,
+	}
+}
+
 func ErrNotFound(err error) *APIError {
 	return &APIError{
 		Code: NotFoundCode,

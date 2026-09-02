@@ -9,6 +9,7 @@ import (
 	"main/internal/domain/repositories"
 	"main/internal/infrastructure/errs"
 	"main/mock"
+	mockpendingbookings "main/mock/pendingbookings"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -114,7 +115,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 		mocks func(
 			data testData,
 			unitOfWork *mock.MockIUnitOfWork,
-			tokenGenerator *mock.MockITokenGenerator,
+			tokenGenerator *mockpendingbookings.MockITokenGenerator,
 			pendingBookingsRepo *mock.MockIPendingBookings,
 			bookingsRepo *mock.MockIBookings,
 			classesRepo *mock.MockIClasses,
@@ -129,7 +130,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -161,7 +162,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -193,7 +194,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -229,7 +230,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -267,7 +268,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -306,7 +307,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -349,7 +350,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -399,7 +400,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -454,7 +455,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -509,7 +510,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -559,7 +560,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -613,7 +614,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -674,7 +675,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -744,7 +745,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			mocks: func(
 				data testData,
 				unitOfWork *mock.MockIUnitOfWork,
-				tokenGenerator *mock.MockITokenGenerator,
+				tokenGenerator *mockpendingbookings.MockITokenGenerator,
 				pendingBookingsRepo *mock.MockIPendingBookings,
 				bookingsRepo *mock.MockIBookings,
 				classesRepo *mock.MockIClasses,
@@ -826,7 +827,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			unitOfWork := mock.NewMockIUnitOfWork(ctrl)
-			tokenGenerator := mock.NewMockITokenGenerator(ctrl)
+			tokenGenerator := mockpendingbookings.NewMockITokenGenerator(ctrl)
 
 			pendingBookingsRepo := mock.NewMockIPendingBookings(ctrl)
 			bookingsRepo := mock.NewMockIBookings(ctrl)
