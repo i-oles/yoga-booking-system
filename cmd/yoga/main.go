@@ -334,7 +334,7 @@ func setupRouter(
 	{
 		api.GET("/api/v1/bookings", authMiddleware, listBookingsHandler.Handle)
 		api.DELETE("/api/v1/bookings/:booking_id", authMiddleware, deleteBookingHandler.Handle)
-		api.GET("api/v1/pending_bookings", authMiddleware, listPendingBookingsHandler.Handle)
+		api.GET("/api/v1/pending_bookings", authMiddleware, listPendingBookingsHandler.Handle)
 		api.POST("/api/v1/classes", authMiddleware, createClassHandler.Handle)
 		api.GET("/api/v1/classes", authMiddleware, getClassesHandler.Handle)
 		api.PATCH("/api/v1/classes/:class_id", authMiddleware, updateClassHandler.Handle)
