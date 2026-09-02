@@ -107,12 +107,12 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
-			name: "failure - class fully booked",
+			name: "failure - someone booked class faster",
 			url:  "/bookings?token=" + testToken,
 			mocks: func(
 				service *mockbookings.MockIService,
 			) {
-				businessErr := domainErrs.ErrClassFullyBooked(testClass.ID, assert.AnError)
+				businessErr := domainErrs.ErrSomeoneBookedClassFaster(assert.AnError)
 
 				service.EXPECT().
 					CreateBooking(gomock.Any(), testToken).
@@ -123,6 +123,46 @@ func TestHandler_Handle(t *testing.T) {
 				t.Helper()
 
 				assert.Equal(t, http.StatusConflict, recorder.Code)
+			},
+		},
+		{
+			name: "failure - booking already exists",
+			url:  "/bookings?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrBookingAlreadyExists(
+					testClass.ID, "anna@example.com", assert.AnError,
+				)
+
+				service.EXPECT().
+					CreateBooking(gomock.Any(), testToken).
+					Return(bookings.BookingCreation{},
+						fmt.Errorf("create booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusConflict, recorder.Code)
+			},
+		},
+		{
+			name: "failure - class expired",
+			url:  "/bookings?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrClassExpired(testClass.ID, assert.AnError)
+
+				service.EXPECT().
+					CreateBooking(gomock.Any(), testToken).
+					Return(bookings.BookingCreation{},
+						fmt.Errorf("create booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
 		{
