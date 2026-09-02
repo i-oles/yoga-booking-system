@@ -162,7 +162,7 @@ func TestHandler_Handle(t *testing.T) {
 			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				t.Helper()
 
-				assert.Equal(t, http.StatusNotFound, recorder.Code)
+				assert.Equal(t, http.StatusConflict, recorder.Code)
 			},
 		},
 		{

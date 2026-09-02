@@ -196,7 +196,7 @@ func TestHandler_Handle(t *testing.T) {
 			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				t.Helper()
 
-				assert.Equal(t, http.StatusNotFound, recorder.Code)
+				assert.Equal(t, http.StatusConflict, recorder.Code)
 			},
 		},
 		{
@@ -226,7 +226,7 @@ func TestHandler_Handle(t *testing.T) {
 			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				t.Helper()
 
-				assert.Equal(t, http.StatusConflict, recorder.Code)
+				assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
 			},
 		},
 		{
@@ -241,6 +241,34 @@ func TestHandler_Handle(t *testing.T) {
 				service *mockpendingbookings.MockIService,
 			) {
 				businessErr := domainErrs.ErrClassFullyBooked(testClassID, assert.AnError)
+
+				service.EXPECT().
+					CreatePendingBooking(gomock.Any(), models.PendingBookingParams{
+						ClassID:   testClassID,
+						FirstName: "Anna",
+						LastName:  "Kowalska",
+						Email:     "anna@example.com",
+					}).
+					Return(fmt.Errorf("create pending booking transaction failed: %w", businessErr))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusConflict, recorder.Code)
+			},
+		},
+		{
+			name: "failure - too late to book",
+			form: url.Values{
+				"email":      {"anna@example.com"},
+				"class_id":   {testClassID.String()},
+				"first_name": {"Anna"},
+				"last_name":  {"Kowalska"},
+			},
+			mocks: func(
+				service *mockpendingbookings.MockIService,
+			) {
+				businessErr := domainErrs.ErrTooLateToBook(testClassID, assert.AnError)
 
 				service.EXPECT().
 					CreatePendingBooking(gomock.Any(), models.PendingBookingParams{

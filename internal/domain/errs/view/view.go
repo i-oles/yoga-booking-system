@@ -91,7 +91,7 @@ func ErrClassFullyBooked(classID uuid.UUID, err error) *BusinessError {
 
 func ErrTooLateToBook(classID uuid.UUID, err error) *BusinessError {
 	return &BusinessError{
-		Code:    ClassFullyBookedCode,
+		Code:    TooLateToBook,
 		ClassID: &classID,
 		Message: "Zajęcia nie mają żadnej innej rezerwacji, " +
 			"a do rozpoczęcia zostało zbyt mało czasu by zarezerwować te zajęcia.",
