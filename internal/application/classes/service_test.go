@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"main/internal/domain/errs/api"
 	domainModels "main/internal/domain/models"
 	"main/internal/domain/repositories"
 	repositoryError "main/internal/infrastructure/errs"
@@ -259,9 +260,10 @@ func TestService_ListClasses(t *testing.T) {
 			bookingsRepo *mock.MockIBookings,
 			locationLinkProvider *mock.MockILinkProvider,
 		)
-		want          []ClassPresentation
-		wantError     bool
-		errorContains string
+		want             []ClassPresentation
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name:                "List one class",
@@ -383,8 +385,9 @@ func TestService_ListClasses(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
 			},
-			wantError:     true,
-			errorContains: "classes_limit",
+			wantError:        true,
+			errorContains:    "classes_limit",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name:                "Repository list error",
@@ -485,6 +488,8 @@ func TestService_ListClasses(t *testing.T) {
 					t.Fatalf("error: %s do not contains %s", err.Error(), tt.errorContains)
 				}
 
+				assertAPIErrorCode(t, err, tt.wantAPIErrorCode)
+
 				return
 			}
 
@@ -503,12 +508,13 @@ func TestService_CreateClasses(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		newClasses    []domainModels.Class
-		mocks         func(classRepo *mock.MockIClasses)
-		want          []domainModels.Class
-		wantError     bool
-		errorContains string
+		name             string
+		newClasses       []domainModels.Class
+		mocks            func(classRepo *mock.MockIClasses)
+		want             []domainModels.Class
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name:       "Create one valid class",
@@ -537,8 +543,9 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
 			},
-			wantError:     true,
-			errorContains: "expired",
+			wantError:        true,
+			errorContains:    "expired",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name:       "Validation error - all class should start in future",
@@ -546,8 +553,9 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
 			},
-			wantError:     true,
-			errorContains: "expired",
+			wantError:        true,
+			errorContains:    "expired",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name:       "Validation error - exists class with the same time",
@@ -555,8 +563,9 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
 			},
-			wantError:     true,
-			errorContains: "already exists",
+			wantError:        true,
+			errorContains:    "already exists",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name:       "Repository list error",
@@ -619,6 +628,8 @@ func TestService_CreateClasses(t *testing.T) {
 					t.Fatalf("error: %s do not contains %s", err.Error(), tt.errorContains)
 				}
 
+				assertAPIErrorCode(t, err, tt.wantAPIErrorCode)
+
 				return
 			}
 
@@ -649,9 +660,10 @@ func TestService_UpdateClass(t *testing.T) {
 			notifier *mock.MockINotifier,
 			locationLinkProvider *mock.MockILinkProvider,
 		)
-		want          ClassData
-		wantError     bool
-		errorContains string
+		want             ClassData
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name: "Update class name",
@@ -837,8 +849,9 @@ func TestService_UpdateClass(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
 			},
-			wantError:     true,
-			errorContains: "message cannot be empty when updating location or class startTime",
+			wantError:        true,
+			errorContains:    "message cannot be empty when updating location or class startTime",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name: "Validation error - empty msg when location update",
@@ -852,8 +865,9 @@ func TestService_UpdateClass(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
 			},
-			wantError:     true,
-			errorContains: "message cannot be empty when updating location or class startTime",
+			wantError:        true,
+			errorContains:    "message cannot be empty when updating location or class startTime",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name:   "Validation error - empty update",
@@ -872,8 +886,9 @@ func TestService_UpdateClass(t *testing.T) {
 					Get(gomock.Any(), futureClass.ID).
 					Return(futureClass, nil)
 			},
-			wantError:     true,
-			errorContains: "no fields to update class",
+			wantError:        true,
+			errorContains:    "no fields to update class",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name: "Validation error - expired class start time",
@@ -891,8 +906,9 @@ func TestService_UpdateClass(t *testing.T) {
 					List(gomock.Any()).
 					Return([]domainModels.Class{}, nil)
 			},
-			wantError:     true,
-			errorContains: "expired",
+			wantError:        true,
+			errorContains:    "expired",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name: "Validation error - class with the same start time already exists",
@@ -910,8 +926,9 @@ func TestService_UpdateClass(t *testing.T) {
 					List(gomock.Any()).
 					Return(futureClasses, nil)
 			},
-			wantError:     true,
-			errorContains: "already exists",
+			wantError:        true,
+			errorContains:    "already exists",
+			wantAPIErrorCode: ptr(api.BadRequestCode),
 		},
 		{
 			name: "Repository list error",
@@ -950,8 +967,9 @@ func TestService_UpdateClass(t *testing.T) {
 					Get(gomock.Any(), futureClass.ID).
 					Return(domainModels.Class{}, repositoryError.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "not found",
+			wantError:        true,
+			errorContains:    "not found",
+			wantAPIErrorCode: ptr(api.NotFoundCode),
 		},
 		{
 			name: "Repository get error",
@@ -1323,6 +1341,8 @@ func TestService_UpdateClass(t *testing.T) {
 					)
 				}
 
+				assertAPIErrorCode(t, err, tt.wantAPIErrorCode)
+
 				return
 			}
 
@@ -1371,8 +1391,9 @@ func TestService_DeleteClass(t *testing.T) {
 			notifier *mock.MockINotifier,
 			locationLinkProvider *mock.MockILinkProvider,
 		)
-		wantError     bool
-		errorContains string
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name: "Delete class without bookings",
@@ -1668,6 +1689,36 @@ func TestService_DeleteClass(t *testing.T) {
 			errorContains: "delete class transaction failed",
 		},
 		{
+			name: "Repository delete class not found",
+			msg:  ptr("Cancelled"),
+			mocks: func(
+				uow *mock.MockIUnitOfWork,
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				passRepo *mock.MockIPasses,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				mockTransaction(
+					uow,
+					classRepo,
+					bookingsRepo,
+					passRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
+				classRepo.EXPECT().
+					Delete(gomock.Any(), futureClass.ID).
+					Return(repositoryError.ErrNoRowsAffected)
+			},
+			wantError:        true,
+			errorContains:    repositoryError.ErrNoRowsAffected.Error(),
+			wantAPIErrorCode: ptr(api.NotFoundCode),
+		},
+		{
 			name: "Unit of work error",
 			msg:  ptr("Cancelled"),
 			mocks: func(
@@ -1779,6 +1830,8 @@ func TestService_DeleteClass(t *testing.T) {
 					t.Fatalf("expected error containing %q, got %q", tt.errorContains, err.Error())
 				}
 
+				assertAPIErrorCode(t, err, tt.wantAPIErrorCode)
+
 				return
 			}
 
@@ -1786,5 +1839,23 @@ func TestService_DeleteClass(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
+	}
+}
+
+func assertAPIErrorCode(t *testing.T, err error, wantCode *int) {
+	t.Helper()
+
+	if wantCode == nil {
+		return
+	}
+
+	var apiErr *api.APIError
+
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected an *api.APIError, got %T: %v", err, err)
+	}
+
+	if apiErr.Code != *wantCode {
+		t.Fatalf("expected APIError code %d, got %d", *wantCode, apiErr.Code)
 	}
 }

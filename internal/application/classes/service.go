@@ -170,12 +170,7 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 			notifierParamsList = append(notifierParamsList, notifierParams)
 		}
 
-		err = repos.Classes.Delete(ctx, classID)
-		if err != nil {
-			return fmt.Errorf("could not delete class: %w", err)
-		}
-
-		return nil
+		return deleteClassRow(ctx, repos, classID)
 	})
 	if err != nil {
 		return fmt.Errorf("delete class transaction failed: %w", err)
@@ -184,6 +179,19 @@ func (s *service) DeleteClass(ctx context.Context, classID uuid.UUID, msg *strin
 	err = s.notifyClassCancellation(notifierParamsList, msg)
 	if err != nil {
 		return fmt.Errorf("could not notify class cancellation: %w", err)
+	}
+
+	return nil
+}
+
+func deleteClassRow(ctx context.Context, repos repositories.Repositories, classID uuid.UUID) error {
+	err := repos.Classes.Delete(ctx, classID)
+	if err != nil {
+		if errors.Is(err, repositoryError.ErrNoRowsAffected) {
+			return api.ErrNotFound(err)
+		}
+
+		return fmt.Errorf("could not delete class: %w", err)
 	}
 
 	return nil
