@@ -168,7 +168,7 @@ func (s *service) checkClassAvailability(
 	if bookingCount == class.MaxCapacity {
 		return models.Class{},
 			viewErrors.ErrClassFullyBooked(
-				classID, fmt.Errorf("no spots left in class with id: %d", classID),
+				classID, fmt.Errorf("no spots left in class with id: %s", classID),
 			)
 	}
 

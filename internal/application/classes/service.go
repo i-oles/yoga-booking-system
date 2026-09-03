@@ -317,7 +317,7 @@ func (s *service) ensureClassUpdate(
 	}
 
 	if update.StartTime != nil {
-		err := validateClassStartTime(*update.StartTime, existingClasses)
+		err := validateClassStartTime(classID, *update.StartTime, existingClasses)
 		if err != nil {
 			return api.ErrValidation(err)
 		}
@@ -349,7 +349,7 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 
 	locationLink, err := s.locationResolver.GetLink(updatedClass.Location)
 	if err != nil {
-		return fmt.Errorf("could not get location link for location: %s", updatedClass.Location)
+		return fmt.Errorf("could not get location link for location %s: %w", updatedClass.Location, err)
 	}
 
 	for _, booking := range bookings {
@@ -425,7 +425,7 @@ func getDataForClassUpdate(update UpdateClassCommand) (map[string]any, error) {
 
 func validateClasses(newClasses, existingClasses []models.Class) error {
 	for _, class := range newClasses {
-		err := validateClassStartTime(class.StartTime, existingClasses)
+		err := validateClassStartTime(class.ID, class.StartTime, existingClasses)
 		if err != nil {
 			return fmt.Errorf("startTime validation failed %w", err)
 		}
@@ -434,12 +434,18 @@ func validateClasses(newClasses, existingClasses []models.Class) error {
 	return nil
 }
 
-func validateClassStartTime(startTime time.Time, existingClasses []models.Class) error {
+func validateClassStartTime(
+	classID uuid.UUID, startTime time.Time, existingClasses []models.Class,
+) error {
 	if startTime.Before(time.Now()) {
 		return fmt.Errorf("class startTime: %v expired", startTime)
 	}
 
 	for _, existingClass := range existingClasses {
+		if existingClass.ID == classID {
+			continue
+		}
+
 		if startTime.Equal(existingClass.StartTime) {
 			return fmt.Errorf("class with startTime %v already exists", startTime)
 		}

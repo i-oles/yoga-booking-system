@@ -562,7 +562,16 @@ func TestService_CreateClasses(t *testing.T) {
 			name:       "Validation error - exists class with the same time",
 			newClasses: futureClasses,
 			mocks: func(classRepo *mock.MockIClasses) {
-				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
+				conflictingClass := domainModels.Class{
+					ID:          uuid.New(),
+					StartTime:   futureTime1,
+					ClassLevel:  "Beginner",
+					ClassName:   "Vinyasa",
+					MaxCapacity: 5,
+					Location:    "Studio A",
+				}
+
+				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{conflictingClass}, nil)
 			},
 			wantError:        true,
 			errorContains:    "already exists",
@@ -766,6 +775,71 @@ func TestService_UpdateClass(t *testing.T) {
 				StartTime:       futureTime3,
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       futureClass.ClassName,
+				CurrentCapacity: 3,
+				MaxCapacity:     futureClass.MaxCapacity,
+				Location:        futureClass.Location,
+			},
+		},
+		{
+			name: "Update class name while resubmitting its own current start time",
+			update: UpdateClassCommand{
+				StartTime: ptr.Of(futureTime1),
+				ClassName: ptr.Of("Ashtanga Flow"),
+				Message:   ptr.Of("test message"),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				updatedClass := futureClass
+				updatedClass.ClassName = "Ashtanga Flow"
+
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]domainModels.Class{futureClass}, nil)
+
+				classRepo.EXPECT().
+					Get(gomock.Any(), futureClass.ID).
+					Return(futureClass, nil)
+
+				classRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						futureClass.ID,
+						map[string]any{
+							"start_time": futureTime1,
+							"class_name": "Ashtanga Flow",
+						},
+					).
+					Return(updatedClass, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(updatedClass.Location).
+					Return("link-a", nil)
+
+				notifier.EXPECT().
+					NotifyClassUpdate(
+						gomock.Any(),
+						"test message",
+						gomock.Any(),
+					).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), futureClass.ID).
+					Return(2, nil)
+			},
+			want: ClassData{
+				ID:              futureClass.ID,
+				StartTime:       futureTime1,
+				ClassLevel:      futureClass.ClassLevel,
+				ClassName:       "Ashtanga Flow",
 				CurrentCapacity: 3,
 				MaxCapacity:     futureClass.MaxCapacity,
 				Location:        futureClass.Location,
@@ -1140,10 +1214,10 @@ func TestService_UpdateClass(t *testing.T) {
 
 				locationLinkProvider.EXPECT().
 					GetLink(otoJogaStudio).
-					Return("", errors.New("maps error"))
+					Return("", errors.New("location link error"))
 			},
 			wantError:     true,
-			errorContains: "could not get class after update",
+			errorContains: "location link error",
 		},
 		{
 			name: "Notifier error",
