@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	viewErrs "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
 	"main/internal/infrastructure/errs"
 	"main/mock"
 	mockpendingbookings "main/mock/pendingbookings"
+	"main/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -121,8 +123,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			classesRepo *mock.MockIClasses,
 			notifier *mock.MockINotifier,
 		)
-		wantError     bool
-		errorContains string
+		wantError             bool
+		errorContains         string
+		wantBusinessErrorCode *int
 	}{
 		{
 			name: "Failure pending booking creation - booking already exists",
@@ -152,8 +155,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 					Return(data.booking, nil)
 			},
 
-			wantError:     true,
-			errorContains: "already exists",
+			wantError:             true,
+			errorContains:         "already exists",
+			wantBusinessErrorCode: ptr.Of(viewErrs.BookingAlreadyExistsCode),
 		},
 		{
 			name: "Failure pending booking creation - get booking error",
@@ -297,8 +301,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 					}, nil)
 			},
 
-			wantError:     true,
-			errorContains: "found 2 pending bookings per user",
+			wantError:             true,
+			errorContains:         "found 2 pending bookings per user",
+			wantBusinessErrorCode: ptr.Of(viewErrs.TooManyPendingBookingsCode),
 		},
 		{
 			name: "Failure pending booking creation - count bookings error",
@@ -440,8 +445,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 					Return(data.class, nil)
 			},
 
-			wantError:     true,
-			errorContains: "no spots left in class",
+			wantError:             true,
+			errorContains:         "no spots left in class",
+			wantBusinessErrorCode: ptr.Of(viewErrs.ClassFullyBookedCode),
 		},
 		{
 			name: "Failure pending booking creation - class expired",
@@ -495,8 +501,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 					Return(data.class, nil)
 			},
 
-			wantError:     true,
-			errorContains: "has expired at",
+			wantError:             true,
+			errorContains:         "has expired at",
+			wantBusinessErrorCode: ptr.Of(viewErrs.ClassExpiredCode),
 		},
 		{
 			name: "Failure pending booking creation - class empty and too late to book",
@@ -550,8 +557,9 @@ func TestService_CreatePendingBooking(t *testing.T) {
 					Return(data.class, nil)
 			},
 
-			wantError:     true,
-			errorContains: "is empty and too late to book",
+			wantError:             true,
+			errorContains:         "is empty and too late to book",
+			wantBusinessErrorCode: ptr.Of(viewErrs.TooLateToBook),
 		},
 		{
 			name: "Failure pending booking creation - generate confirmation token error",
@@ -867,6 +875,13 @@ func TestService_CreatePendingBooking(t *testing.T) {
 			if tt.wantError {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
+
+				if tt.wantBusinessErrorCode != nil {
+					var businessErr *viewErrs.BusinessError
+
+					require.ErrorAs(t, err, &businessErr)
+					assert.Equal(t, *tt.wantBusinessErrorCode, businessErr.Code)
+				}
 
 				return
 			}

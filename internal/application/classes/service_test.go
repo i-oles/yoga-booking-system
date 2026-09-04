@@ -12,6 +12,7 @@ import (
 	"main/internal/domain/errs/api"
 	domainModels "main/internal/domain/models"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services/passes"
 	repositoryError "main/internal/infrastructure/errs"
 	"main/mock"
 	"main/pkg/optional"
@@ -582,10 +583,7 @@ func TestService_CreateClasses(t *testing.T) {
 			newClasses: futureClasses,
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).
-					Return(
-						[]domainModels.Class{},
-						fmt.Errorf("could not get existing classes: %w", errors.New("db error")),
-					)
+					Return([]domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
@@ -596,10 +594,7 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
 				classRepo.EXPECT().Insert(gomock.Any(), futureClasses).
-					Return(
-						[]domainModels.Class{},
-						fmt.Errorf("could not insert classes: %w", errors.New("db error")),
-					)
+					Return([]domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not insert classes",
@@ -760,9 +755,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
 						"test message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(nil)
 
@@ -825,9 +832,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
 						"test message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(nil)
 
@@ -888,9 +907,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-x",
+						},
 						"some message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(nil)
 
@@ -1262,9 +1293,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
 						"message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(errors.New("smtp error"))
 			},
@@ -1529,7 +1572,16 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							RecipientEmail:     bookingWithoutPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link-a",
+						},
 						"Class cancelled",
 					).
 					Return(nil)
@@ -1575,7 +1627,19 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithPass.FirstName,
+							RecipientLastName:  bookingWithPass.LastName,
+							RecipientEmail:     bookingWithPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link-a",
+							PassSlots: passes.BuildPassSlots(
+								[]domainModels.Booking{bookingWithPass}, pass1.TotalSlots, time.Now(),
+							),
+						},
 						"Class cancelled",
 					).
 					Return(nil)
@@ -1844,7 +1908,16 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							RecipientEmail:     bookingWithoutPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link",
+						},
 						"Cancelled",
 					).
 					Return(errors.New("smtp error"))
