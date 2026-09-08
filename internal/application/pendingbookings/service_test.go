@@ -421,7 +421,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -477,7 +477,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -533,7 +533,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -584,7 +584,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -638,7 +638,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -670,7 +670,20 @@ func TestService_CreatePendingBooking(t *testing.T) {
 						gomock.Any(),
 						gomock.Any(),
 					).
-					Return(assert.AnError)
+					DoAndReturn(func(
+						_ context.Context,
+						pendingBooking models.PendingBooking,
+					) error {
+						assert.Equal(t, data.pendingBookingParams.ClassID, pendingBooking.ClassID)
+						assert.Equal(t, data.pendingBookingParams.Email, pendingBooking.Email)
+						assert.Equal(t, data.pendingBookingParams.FirstName, pendingBooking.FirstName)
+						assert.Equal(t, data.pendingBookingParams.LastName, pendingBooking.LastName)
+						assert.Equal(t, testToken, pendingBooking.ConfirmationToken)
+						assert.NotEqual(t, uuid.Nil, pendingBooking.ID)
+						assert.False(t, pendingBooking.CreatedAt.IsZero())
+
+						return assert.AnError
+					})
 			},
 
 			wantError:     true,
@@ -699,7 +712,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
@@ -769,7 +782,7 @@ func TestService_CreatePendingBooking(t *testing.T) {
 				bookingsRepo.EXPECT().
 					GetByEmailAndClassID(
 						gomock.Any(),
-						data.class.ID,
+						data.pendingBookingParams.ClassID,
 						data.pendingBookingParams.Email,
 					).
 					Return(models.Booking{}, errs.ErrNotFound)

@@ -436,7 +436,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 				return api.ErrNotFound(err)
 			}
 
-			return fmt.Errorf("could get booking for id %s: %w", bookingID, err)
+			return fmt.Errorf("could not get booking for id %s: %w", bookingID, err)
 		}
 
 		err = repos.Bookings.Delete(ctx, bookingID)
@@ -470,7 +470,7 @@ func (s *service) DeleteBooking(ctx context.Context, bookingID uuid.UUID) error 
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
 	if err != nil {
-		return fmt.Errorf("could not nofify booking cancellation with %+v: %w", notifierParams, err)
+		return fmt.Errorf("could not notify booking cancellation with %+v: %w", notifierParams, err)
 	}
 
 	return nil

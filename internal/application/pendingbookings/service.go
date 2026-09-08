@@ -157,7 +157,7 @@ func (s *service) checkClassAvailability(
 ) (models.Class, error) {
 	bookingCount, err := repos.Bookings.CountForClassID(ctx, classID)
 	if err != nil {
-		return models.Class{}, fmt.Errorf("could not count bookings for class %v: %w ", classID, err)
+		return models.Class{}, fmt.Errorf("could not count bookings for class %v: %w", classID, err)
 	}
 
 	class, err := repos.Classes.Get(ctx, classID)

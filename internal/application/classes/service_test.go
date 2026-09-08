@@ -34,8 +34,6 @@ var (
 	classID3 = uuid.New()
 	classID4 = uuid.New()
 
-	bookingID2 = uuid.New()
-
 	passID1 = 1234
 
 	otoJogaStudio = "studio otojoga"
@@ -227,8 +225,8 @@ var bookingWithPass = domainModels.Booking{
 }
 
 var bookingWithoutPass = domainModels.Booking{
-	ID:                uuid.MustParse("7c9b4c3e-2a6f-4b9d-9c8f-6f1a3e0b5d42"),
-	ClassID:           bookingID2,
+	ID:                uuid.MustParse("a1e2f3c4-5b6d-4e8f-9a0b-1c2d3e4f5a6b"),
+	ClassID:           classID1,
 	Class:             futureClass,
 	PassID:            optional.Empty[int](),
 	Pass:              optional.Empty[domainModels.Pass](),
@@ -1049,6 +1047,25 @@ func TestService_UpdateClass(t *testing.T) {
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
+		},
+		{
+			name: "Repository list not found",
+			update: UpdateClassCommand{
+				ClassName: ptr.Of("Power Yoga"),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, repositoryError.ErrNotFound)
+			},
+			wantError:        true,
+			errorContains:    "not found",
+			wantAPIErrorCode: ptr.Of(api.NotFoundCode),
 		},
 		{
 			name: "Repository get not found",
