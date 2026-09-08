@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"main/internal/domain/errs/api"
+	viewErrs "main/internal/domain/errs/view"
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
 	"main/internal/infrastructure/errs"
@@ -147,8 +148,9 @@ func TestService_CreateBooking(t *testing.T) {
 			data testData,
 			got BookingCreation,
 		)
-		wantError     bool
-		errorContains string
+		wantError             bool
+		errorContains         string
+		wantBusinessErrorCode *int
 	}{
 		{
 			name:  "Failure booking creation - pending booking not found error",
@@ -176,8 +178,9 @@ func TestService_CreateBooking(t *testing.T) {
 					GetByConfirmationToken(gomock.Any(), testToken).
 					Return(models.PendingBooking{}, errs.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "pending booking for token: token not found",
+			wantError:             true,
+			errorContains:         "pending booking for token: token not found",
+			wantBusinessErrorCode: ptr.Of(viewErrs.PendingBookingNotFoundCode),
 		},
 		{
 			name:  "Failure booking creation - pending booking repository error",
@@ -241,11 +244,12 @@ func TestService_CreateBooking(t *testing.T) {
 					).
 					Return(models.Booking{}, nil)
 			},
-			wantError:     true,
-			errorContains: "booking already exists",
+			wantError:             true,
+			errorContains:         "booking already exists",
+			wantBusinessErrorCode: ptr.Of(viewErrs.BookingAlreadyExistsCode),
 		},
 		{
-			name:  "Failure booking creation - booking not found error",
+			name:  "Failure booking creation - get booking by email and class id error",
 			token: testToken,
 			data:  newTestData,
 			mocks: func(
@@ -328,8 +332,9 @@ func TestService_CreateBooking(t *testing.T) {
 					).
 					Return(models.Booking{}, errs.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "has expired",
+			wantError:             true,
+			errorContains:         "has expired",
+			wantBusinessErrorCode: ptr.Of(viewErrs.ClassExpiredCode),
 		},
 		{
 			name:  "Failure booking creation - count bookings error",
@@ -412,8 +417,9 @@ func TestService_CreateBooking(t *testing.T) {
 					Return(10, nil)
 			},
 
-			wantError:     true,
-			errorContains: "max capacity of class",
+			wantError:             true,
+			errorContains:         "max capacity of class",
+			wantBusinessErrorCode: ptr.Of(viewErrs.SomeoneBookedClassFasterCode),
 		},
 		{
 			name:  "Failure booking creation - insert contact error",
@@ -1154,6 +1160,8 @@ func TestService_CreateBooking(t *testing.T) {
 						assert.Equal(t, data.pendingBooking.FirstName, booking.FirstName)
 						assert.Equal(t, data.pendingBooking.LastName, booking.LastName)
 						assert.Equal(t, data.pendingBooking.ConfirmationToken, booking.ConfirmationToken)
+						assert.False(t, booking.PassID.Exists(), "full pass must not be assigned to the booking")
+						assert.False(t, booking.Pass.Exists(), "full pass must not be assigned to the booking")
 
 						return booking.ID, nil
 					})
@@ -1522,6 +1530,13 @@ func TestService_CreateBooking(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
 
+				if tt.wantBusinessErrorCode != nil {
+					var businessErr *viewErrs.BusinessError
+
+					require.ErrorAs(t, err, &businessErr)
+					assert.Equal(t, *tt.wantBusinessErrorCode, businessErr.Code)
+				}
+
 				return
 			}
 
@@ -1564,8 +1579,9 @@ func TestService_CancelBooking(t *testing.T) {
 			locationLinkProvider *mock.MockILinkProvider,
 			notifier *mock.MockINotifier,
 		)
-		wantError     bool
-		errorContains string
+		wantError             bool
+		errorContains         string
+		wantBusinessErrorCode *int
 	}{
 		{
 			name:  "Failure booking cancellation - booking not found error",
@@ -1586,8 +1602,9 @@ func TestService_CancelBooking(t *testing.T) {
 					GetByID(gomock.Any(), gomock.Any()).
 					Return(models.Booking{}, errs.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "booking with id",
+			wantError:             true,
+			errorContains:         "booking with id",
+			wantBusinessErrorCode: ptr.Of(viewErrs.BookingNotFoundCode),
 		},
 		{
 			name:  "Failure booking cancellation - repository get booking error",
@@ -1636,8 +1653,9 @@ func TestService_CancelBooking(t *testing.T) {
 					GetByID(gomock.Any(), data.booking.ID).
 					Return(data.booking, nil)
 			},
-			wantError:     true,
-			errorContains: "invalid token",
+			wantError:             true,
+			errorContains:         "invalid token",
+			wantBusinessErrorCode: ptr.Of(viewErrs.InvalidCancellationLinkCode),
 		},
 		{
 			name:  "Failure booking cancellation - class expired error",
@@ -1666,8 +1684,9 @@ func TestService_CancelBooking(t *testing.T) {
 					Return(data.booking, nil)
 			},
 
-			wantError:     true,
-			errorContains: "has expired",
+			wantError:             true,
+			errorContains:         "has expired",
+			wantBusinessErrorCode: ptr.Of(viewErrs.ClassExpiredCode),
 		},
 		{
 			name:  "Failure booking cancellation - delete booking not found error",
@@ -1695,8 +1714,9 @@ func TestService_CancelBooking(t *testing.T) {
 					Return(errs.ErrNoRowsAffected)
 			},
 
-			wantError:     true,
-			errorContains: "delete booking failure",
+			wantError:             true,
+			errorContains:         "delete booking failure",
+			wantBusinessErrorCode: ptr.Of(viewErrs.BookingNotFoundCode),
 		},
 		{
 			name:  "Failure booking cancellation - delete booking repository error",
@@ -1984,6 +2004,13 @@ func TestService_CancelBooking(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
 
+				if tt.wantBusinessErrorCode != nil {
+					var businessErr *viewErrs.BusinessError
+
+					require.ErrorAs(t, err, &businessErr)
+					assert.Equal(t, *tt.wantBusinessErrorCode, businessErr.Code)
+				}
+
 				return
 			}
 
@@ -2062,7 +2089,7 @@ func TestService_DeleteBooking(t *testing.T) {
 					Return(models.Booking{}, assert.AnError)
 			},
 			wantError:     true,
-			errorContains: "could get booking for id",
+			errorContains: "could not get booking for id",
 		},
 		{
 			name: "Failure booking deletion - delete booking not found error",
@@ -2201,7 +2228,7 @@ func TestService_DeleteBooking(t *testing.T) {
 					Return(assert.AnError)
 			},
 			wantError:     true,
-			errorContains: "could not nofify booking cancellation",
+			errorContains: "could not notify booking cancellation",
 		},
 		{
 			name: "Success booking deletion - booking without pass",
@@ -2505,8 +2532,9 @@ func TestService_GetBookingCancellationForm(t *testing.T) {
 			data testData,
 			got BookingCancellationForm,
 		)
-		wantError     bool
-		errorContains string
+		wantError             bool
+		errorContains         string
+		wantBusinessErrorCode *int
 	}{
 		{
 			name:  "Failure getting booking cancellation form - booking not found error",
@@ -2520,8 +2548,9 @@ func TestService_GetBookingCancellationForm(t *testing.T) {
 					GetByID(gomock.Any(), data.booking.ID).
 					Return(models.Booking{}, errs.ErrNotFound)
 			},
-			wantError:     true,
-			errorContains: "booking not found for id",
+			wantError:             true,
+			errorContains:         "booking not found for id",
+			wantBusinessErrorCode: ptr.Of(viewErrs.BookingNotFoundCode),
 		},
 		{
 			name:  "Failure getting booking cancellation form - repository get booking error",
@@ -2550,8 +2579,9 @@ func TestService_GetBookingCancellationForm(t *testing.T) {
 					GetByID(gomock.Any(), data.booking.ID).
 					Return(data.booking, nil)
 			},
-			wantError:     true,
-			errorContains: "failed due to invalid token",
+			wantError:             true,
+			errorContains:         "failed due to invalid token",
+			wantBusinessErrorCode: ptr.Of(viewErrs.InvalidCancellationLinkCode),
 		},
 		{
 			name:  "Success getting booking cancellation form",
@@ -2640,6 +2670,13 @@ func TestService_GetBookingCancellationForm(t *testing.T) {
 			if tt.wantError {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
+
+				if tt.wantBusinessErrorCode != nil {
+					var businessErr *viewErrs.BusinessError
+
+					require.ErrorAs(t, err, &businessErr)
+					assert.Equal(t, *tt.wantBusinessErrorCode, businessErr.Code)
+				}
 
 				return
 			}

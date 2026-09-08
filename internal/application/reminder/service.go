@@ -169,7 +169,7 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 
 		err = s.notifier.NotifyBookingReminder(notifierParams, cancellationLink)
 		if err != nil {
-			return fmt.Errorf("could not nofify booking with %v: %w", notifierParams, err)
+			return fmt.Errorf("could not notify booking with %v: %w", notifierParams, err)
 		}
 
 		slog.Info("Reminder: booking reminded",
@@ -211,6 +211,9 @@ func isBookedSameOrPreviousDayAsClassDay(bookingCreatedAt, classStartTime time.T
 	if bookingCreatedAt.IsZero() || classStartTime.IsZero() {
 		return false
 	}
+
+	bookingCreatedAt = bookingCreatedAt.UTC()
+	classStartTime = classStartTime.UTC()
 
 	aDate := time.Date(
 		bookingCreatedAt.Year(), bookingCreatedAt.Month(), bookingCreatedAt.Day(), 0, 0, 0, 0, time.UTC,

@@ -277,12 +277,12 @@ func TestService_RemindBookings(t *testing.T) {
 			data: func() testData {
 				data := newTestData()
 
-				data.class.StartTime = time.Now().Add(12 * time.Hour)
+				classStartTimeUTC := data.class.StartTime.UTC()
 
 				data.booking.CreatedAt = time.Date(
-					data.class.StartTime.Year(),
-					data.class.StartTime.Month(),
-					data.class.StartTime.Day(),
+					classStartTimeUTC.Year(),
+					classStartTimeUTC.Month(),
+					classStartTimeUTC.Day(),
 					10, 0, 0, 0,
 					time.UTC,
 				)
@@ -315,9 +315,7 @@ func TestService_RemindBookings(t *testing.T) {
 			data: func() testData {
 				data := newTestData()
 
-				data.class.StartTime = time.Now().Add(12 * time.Hour)
-
-				prev := data.class.StartTime.Add(-24 * time.Hour)
+				prev := data.class.StartTime.Add(-24 * time.Hour).UTC()
 
 				data.booking.CreatedAt = time.Date(
 					prev.Year(),
@@ -535,7 +533,7 @@ func TestService_RemindBookings(t *testing.T) {
 			},
 
 			wantError:     true,
-			errorContains: "could not nofify booking",
+			errorContains: "could not notify booking",
 		},
 		{
 			name: "Success remind bookings - booking without pass",
@@ -684,6 +682,87 @@ func TestService_RemindBookings(t *testing.T) {
 						return nil
 					})
 			},
+		},
+		{
+			name: "Success remind bookings - multiple bookings, one already reminded is skipped",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				alreadyRemindedAt := time.Now().Add(-time.Hour)
+				alreadyRemindedBooking := newBooking(data.class)
+				alreadyRemindedBooking.RemindedAt = &alreadyRemindedAt
+
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return([]models.Booking{alreadyRemindedBooking, data.booking}, nil)
+
+				mockRemindBookingTransaction(
+					unitOfWork,
+					bookingsRepo,
+				)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						gomock.Any(),
+					).
+					Return(data.booking, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(data.class.Location).
+					Return(testLocationLink, nil)
+
+				notifier.EXPECT().
+					NotifyBookingReminder(
+						gomock.Any(),
+						gomock.Any(),
+					).
+					Return(nil)
+			},
+		},
+		{
+			name: "Failure remind bookings - stops processing remaining classes after first error",
+			data: newTestData,
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				classesRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				secondClass := newClass()
+
+				classesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Class{data.class, secondClass}, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(
+						gomock.Any(),
+						data.class.ID,
+					).
+					Return(nil, assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not send reminders for class",
 		},
 	}
 
@@ -837,6 +916,18 @@ func TestIsBookedSameOrPreviousDayAsClassDay(t *testing.T) {
 			a:    time.Time{},
 			b:    time.Time{},
 			want: false,
+		},
+		{
+			name: "mixed extreme timezones two real days apart",
+			a:    time.Date(2026, 9, 1, 23, 0, 0, 0, time.UTC).In(time.FixedZone("UTC+14", 14*3600)),
+			b:    time.Date(2026, 9, 3, 1, 0, 0, 0, time.UTC).In(time.FixedZone("UTC-12", -12*3600)),
+			want: false,
+		},
+		{
+			name: "mixed timezones same real day",
+			a:    time.Date(2026, 9, 3, 8, 0, 0, 0, time.UTC).In(time.FixedZone("UTC+9", 9*3600)),
+			b:    time.Date(2026, 9, 3, 20, 0, 0, 0, time.UTC).In(time.FixedZone("UTC-5", -5*3600)),
+			want: true,
 		},
 	}
 

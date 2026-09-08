@@ -5,10 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
 	"main/mock"
 	"main/pkg/optional"
+	"main/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -105,8 +107,9 @@ func TestService_ActivatePass(t *testing.T) {
 			got PassActivation,
 		)
 
-		wantError     bool
-		errorContains string
+		wantError        bool
+		errorContains    string
+		wantAPIErrorCode *int
 	}{
 		{
 			name:                 "Failure pass activation - initial slots greater than total slots",
@@ -114,8 +117,9 @@ func TestService_ActivatePass(t *testing.T) {
 			initialAssignedSlots: 5,
 			totalPassSlots:       4,
 
-			wantError:     true,
-			errorContains: "initialAssignedSlots: 5 is grater than totalSlots: 4",
+			wantError:        true,
+			errorContains:    "initialAssignedSlots: 5 is grater than totalSlots: 4",
+			wantAPIErrorCode: ptr.Of(api.BadRequestCode),
 		},
 		{
 			name:                 "Failure pass activation - insert pass error",
@@ -228,8 +232,9 @@ func TestService_ActivatePass(t *testing.T) {
 					Return([]models.Booking{data.booking}, nil)
 			},
 
-			wantError:     true,
-			errorContains: "initialUsedSlots should be equal to len bookingsToAssign",
+			wantError:        true,
+			errorContains:    "initialUsedSlots should be equal to len bookingsToAssign",
+			wantAPIErrorCode: ptr.Of(api.ConflictCode),
 		},
 		{
 			name:                 "Failure pass activation - update booking error",
@@ -316,7 +321,7 @@ func TestService_ActivatePass(t *testing.T) {
 			},
 
 			wantError:     true,
-			errorContains: "could notify pass activation",
+			errorContains: "could not notify pass activation",
 		},
 		{
 			name:                 "Success pass activation - without assigning bookings",
@@ -449,6 +454,86 @@ func TestService_ActivatePass(t *testing.T) {
 				assert.Equal(t, data.pass.ID, got.UpdatedBookings[0].Pass.Get().ID)
 			},
 		},
+		{
+			name:                 "Success pass activation - initial slots equal total slots",
+			email:                "john@example.com",
+			initialAssignedSlots: 1,
+			totalPassSlots:       1,
+			data: func() testData {
+				data := newTestData()
+				data.pass.TotalSlots = 1
+
+				return data
+			},
+
+			mocks: func(
+				data testData,
+				unitOfWork *mock.MockIUnitOfWork,
+				passesRepo *mock.MockIPasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+			) {
+				mockActivatePassTransaction(
+					unitOfWork,
+					passesRepo,
+					bookingsRepo,
+				)
+
+				passesRepo.EXPECT().
+					Insert(
+						gomock.Any(),
+						data.pass.Email,
+						data.pass.TotalSlots,
+					).
+					Return(data.pass, nil)
+
+				bookingsRepo.EXPECT().
+					ListWithoutPassByEmail(
+						gomock.Any(),
+						data.pass.Email,
+						1,
+					).
+					Return([]models.Booking{data.booking}, nil)
+
+				bookingsRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						data.booking.ID,
+						map[string]any{"pass_id": data.pass.ID},
+					).
+					DoAndReturn(func(
+						_ context.Context,
+						_ uuid.UUID,
+						update map[string]any,
+					) (models.Booking, error) {
+						assert.Equal(t, data.pass.ID, update["pass_id"])
+
+						updated := data.booking
+						updated.PassID = optional.Of(data.pass.ID)
+						updated.Pass = optional.Of(data.pass)
+
+						return updated, nil
+					})
+
+				notifier.EXPECT().
+					NotifyPassActivation(
+						data.pass.Email,
+						gomock.Any(),
+					).
+					Return(nil)
+			},
+
+			assert: func(
+				t *testing.T,
+				data testData,
+				got PassActivation,
+			) {
+				t.Helper()
+
+				assert.Equal(t, data.pass, got.Pass)
+				require.Len(t, got.UpdatedBookings, 1)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -493,6 +578,13 @@ func TestService_ActivatePass(t *testing.T) {
 			if tt.wantError {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.errorContains)
+
+				if tt.wantAPIErrorCode != nil {
+					var apiErr *api.APIError
+
+					require.ErrorAs(t, err, &apiErr)
+					assert.Equal(t, *tt.wantAPIErrorCode, apiErr.Code)
+				}
 
 				return
 			}

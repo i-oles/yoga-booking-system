@@ -12,6 +12,7 @@ import (
 	"main/internal/domain/errs/api"
 	domainModels "main/internal/domain/models"
 	"main/internal/domain/repositories"
+	"main/internal/domain/services/passes"
 	repositoryError "main/internal/infrastructure/errs"
 	"main/mock"
 	"main/pkg/optional"
@@ -32,8 +33,6 @@ var (
 	classID2 = uuid.New()
 	classID3 = uuid.New()
 	classID4 = uuid.New()
-
-	bookingID2 = uuid.New()
 
 	passID1 = 1234
 
@@ -226,8 +225,8 @@ var bookingWithPass = domainModels.Booking{
 }
 
 var bookingWithoutPass = domainModels.Booking{
-	ID:                uuid.MustParse("7c9b4c3e-2a6f-4b9d-9c8f-6f1a3e0b5d42"),
-	ClassID:           bookingID2,
+	ID:                uuid.MustParse("a1e2f3c4-5b6d-4e8f-9a0b-1c2d3e4f5a6b"),
+	ClassID:           classID1,
 	Class:             futureClass,
 	PassID:            optional.Empty[int](),
 	Pass:              optional.Empty[domainModels.Pass](),
@@ -562,7 +561,16 @@ func TestService_CreateClasses(t *testing.T) {
 			name:       "Validation error - exists class with the same time",
 			newClasses: futureClasses,
 			mocks: func(classRepo *mock.MockIClasses) {
-				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
+				conflictingClass := domainModels.Class{
+					ID:          uuid.New(),
+					StartTime:   futureTime1,
+					ClassLevel:  "Beginner",
+					ClassName:   "Vinyasa",
+					MaxCapacity: 5,
+					Location:    "Studio A",
+				}
+
+				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{conflictingClass}, nil)
 			},
 			wantError:        true,
 			errorContains:    "already exists",
@@ -573,10 +581,7 @@ func TestService_CreateClasses(t *testing.T) {
 			newClasses: futureClasses,
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).
-					Return(
-						[]domainModels.Class{},
-						fmt.Errorf("could not get existing classes: %w", errors.New("db error")),
-					)
+					Return([]domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
@@ -587,10 +592,7 @@ func TestService_CreateClasses(t *testing.T) {
 			mocks: func(classRepo *mock.MockIClasses) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
 				classRepo.EXPECT().Insert(gomock.Any(), futureClasses).
-					Return(
-						[]domainModels.Class{},
-						fmt.Errorf("could not insert classes: %w", errors.New("db error")),
-					)
+					Return([]domainModels.Class{}, errors.New("db error"))
 			},
 			wantError:     true,
 			errorContains: "could not insert classes",
@@ -751,9 +753,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
 						"test message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(nil)
 
@@ -766,6 +780,83 @@ func TestService_UpdateClass(t *testing.T) {
 				StartTime:       futureTime3,
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       futureClass.ClassName,
+				CurrentCapacity: 3,
+				MaxCapacity:     futureClass.MaxCapacity,
+				Location:        futureClass.Location,
+			},
+		},
+		{
+			name: "Update class name while resubmitting its own current start time",
+			update: UpdateClassCommand{
+				StartTime: ptr.Of(futureTime1),
+				ClassName: ptr.Of("Ashtanga Flow"),
+				Message:   ptr.Of("test message"),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				updatedClass := futureClass
+				updatedClass.ClassName = "Ashtanga Flow"
+
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]domainModels.Class{futureClass}, nil)
+
+				classRepo.EXPECT().
+					Get(gomock.Any(), futureClass.ID).
+					Return(futureClass, nil)
+
+				classRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						futureClass.ID,
+						map[string]any{
+							"start_time": futureTime1,
+							"class_name": "Ashtanga Flow",
+						},
+					).
+					Return(updatedClass, nil)
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(updatedClass.Location).
+					Return("link-a", nil)
+
+				notifier.EXPECT().
+					NotifyClassUpdate(
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
+						"test message",
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
+					).
+					Return(nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), futureClass.ID).
+					Return(2, nil)
+			},
+			want: ClassData{
+				ID:              futureClass.ID,
+				StartTime:       futureTime1,
+				ClassLevel:      futureClass.ClassLevel,
+				ClassName:       "Ashtanga Flow",
 				CurrentCapacity: 3,
 				MaxCapacity:     futureClass.MaxCapacity,
 				Location:        futureClass.Location,
@@ -814,9 +905,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-x",
+						},
 						"some message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(nil)
 
@@ -944,6 +1047,25 @@ func TestService_UpdateClass(t *testing.T) {
 			},
 			wantError:     true,
 			errorContains: "could not get existing classes",
+		},
+		{
+			name: "Repository list not found",
+			update: UpdateClassCommand{
+				ClassName: ptr.Of("Power Yoga"),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, repositoryError.ErrNotFound)
+			},
+			wantError:        true,
+			errorContains:    "not found",
+			wantAPIErrorCode: ptr.Of(api.NotFoundCode),
 		},
 		{
 			name: "Repository get not found",
@@ -1140,10 +1262,10 @@ func TestService_UpdateClass(t *testing.T) {
 
 				locationLinkProvider.EXPECT().
 					GetLink(otoJogaStudio).
-					Return("", errors.New("maps error"))
+					Return("", errors.New("location link error"))
 			},
 			wantError:     true,
-			errorContains: "could not get class after update",
+			errorContains: "location link error",
 		},
 		{
 			name: "Notifier error",
@@ -1188,9 +1310,21 @@ func TestService_UpdateClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassUpdate(
-						gomock.Any(),
+						domainModels.NotifierParams{
+							RecipientEmail:     bookingWithoutPass.Email,
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							ClassName:          updatedClass.ClassName,
+							ClassLevel:         updatedClass.ClassLevel,
+							StartTime:          updatedClass.StartTime,
+							Location:           updatedClass.Location,
+							LocationLink:       "link-a",
+						},
 						"message",
-						gomock.Any(),
+						fmt.Sprintf(
+							"testDomainAddr/bookings/%s/cancel_form?token=%s",
+							bookingWithoutPass.ID, bookingWithoutPass.ConfirmationToken,
+						),
 					).
 					Return(errors.New("smtp error"))
 			},
@@ -1455,7 +1589,16 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							RecipientEmail:     bookingWithoutPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link-a",
+						},
 						"Class cancelled",
 					).
 					Return(nil)
@@ -1501,7 +1644,19 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithPass.FirstName,
+							RecipientLastName:  bookingWithPass.LastName,
+							RecipientEmail:     bookingWithPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link-a",
+							PassSlots: passes.BuildPassSlots(
+								[]domainModels.Booking{bookingWithPass}, pass1.TotalSlots, time.Now(),
+							),
+						},
 						"Class cancelled",
 					).
 					Return(nil)
@@ -1770,7 +1925,16 @@ func TestService_DeleteClass(t *testing.T) {
 
 				notifier.EXPECT().
 					NotifyClassCancellation(
-						gomock.AssignableToTypeOf(domainModels.NotifierParams{}),
+						domainModels.NotifierParams{
+							RecipientFirstName: bookingWithoutPass.FirstName,
+							RecipientLastName:  bookingWithoutPass.LastName,
+							RecipientEmail:     bookingWithoutPass.Email,
+							ClassName:          futureClass.ClassName,
+							ClassLevel:         futureClass.ClassLevel,
+							StartTime:          futureClass.StartTime,
+							Location:           futureClass.Location,
+							LocationLink:       "link",
+						},
 						"Cancelled",
 					).
 					Return(errors.New("smtp error"))

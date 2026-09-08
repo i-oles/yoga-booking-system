@@ -73,7 +73,7 @@ func (s *service) ActivatePass(
 	err = s.notifier.NotifyPassActivation(email, passSlots)
 	if err != nil {
 		return PassActivation{},
-			fmt.Errorf("could notify pass activation for %s with %v: %w", email, passSlots, err)
+			fmt.Errorf("could not notify pass activation for %s with %v: %w", email, passSlots, err)
 	}
 
 	return PassActivation{
