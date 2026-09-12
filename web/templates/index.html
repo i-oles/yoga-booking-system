@@ -1,146 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>otojoga</title>
+    <title>otojoga.art</title>
     <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
     <link rel="stylesheet" href="/web/static/css/styles.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600&family=Manrope:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
-<br>
-<div id="page-grid">
-    <div id="main-container">
-        <p style="padding-bottom: 10px;" id="info-header-schedule">harmonogram</p> 
-        {{ if .IsVacation }}
-            <div class="class-container">
-                <div class="vacation-info">
-                    w terminie <br>
-                    10.09 - 06.10 <br>
-                    jestem na urlopie
-                    <br><br>
-                    :)
-                </div>
+<div class="site">
+    <div class="site-main">
+
+        <div class="hero">
+            <div class="hero-intro">
+                <div class="hero-logo">IGOR<br>OLEŚ</div>
+                <div class="hero-mark">JOGA</div>
+                <div class="hero-rule"></div>
+                <p class="hero-tagline">niezależnie od tego gdzie zaczynasz,<br>znajdziesz tu siebie - oto joga</p>
             </div>
+            <div class="hero-photo-wrap">
+                <img class="hero-photo" src="/web/static/img/otojoga_main.jpg" alt="Igor Oleś">
+                <a class="hero-instagram-link" href="https://www.instagram.com/gore.pakore.yogi" target="_blank" rel="noopener noreferrer">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="3" y="3" width="18" height="18" rx="5"/>
+                        <circle cx="12" cy="12" r="4.2"/>
+                        <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" stroke="none"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="schedule-heading">
+            <div class="section-label">harmonogram</div>
+        </div>
+
+        {{ if .IsVacation }}
+        <div class="vacation-banner" style="margin-bottom: 40px;">
+            w terminie <br>
+            10.09 - 06.10 <br>
+            jestem na urlopie
+            <br><br>
+            :)
+        </div>
         {{ end }}
-        {{ range .Classes }}
-        <div class="class-container">
-            <form id="form-{{ .ID }}">
-                <div class="class-info">
-                    <div class="class-title"
-                        style="font-weight: 600; font-size: 14px; color: black; opacity: 0.6; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                        {{ .ClassName }}
-                    </div>
-                    <table style="border-collapse: collapse; margin-top: 15px;">
-                        <tr>
-                            <td style="font-weight:300;">poziom:</td>
-                            <td style="font-weight:300;">{{ .ClassLevel }}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:300;">dzień:</td>
-                            <td style="font-weight:300;">{{ .WeekDay }}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:300;">data:</td>
-                            <td style="font-weight:300;">{{ .StartDate }}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:300;">godzina:</td>
-                            <td style="font-weight:300;">{{ .StartHour }}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:300;">gdzie:</td>
-                            <td style="font-weight:300;">
-                                <a
-                                    href="{{ .LocationLink }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style="
-                                        color: inherit;
-                                        text-decoration-color: #cfcfcf;
-                                    "
-                                >
-                                    {{ .Location }}
-                                </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:300;">wolne miejsca:</td>
-                            <td style="font-weight:300;">{{ .CurrentCapacity }}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div id="booking-form-{{ .ID }}">
-                {{ if eq .CurrentCapacity 0 }}
-                <div id="book-button-{{ .ID }}">
-                    <button class="btn-book" disabled>rezerwuj</button>
-                </div>
-                {{ else }}
-                <div id="book-button-{{ .ID }}">
-                    <button class="btn-book"
-                            hx-get="/classes/{{ .ID }}/pending_bookings/form"
-                            hx-swap="outerHTML"
-                            hx-target="#booking-form-{{ .ID }}"
-                            hx-trigger="click">
-                        rezerwuj
-                    </button>
+
+        <div class="schedule-grid">
+                {{ range .Classes }}
+                <div class="class-container">
+                    <form id="form-{{ .ID }}">
+                        <div class="class-info">
+                            <div class="class-title">{{ .ClassName }}</div>
+                            <table>
+                                <tr>
+                                    <td>poziom:</td>
+                                    <td>{{ .ClassLevel }}</td>
+                                </tr>
+                                <tr>
+                                    <td>dzień:</td>
+                                    <td>{{ .WeekDay }}</td>
+                                </tr>
+                                <tr>
+                                    <td>data:</td>
+                                    <td>{{ .StartDate }}</td>
+                                </tr>
+                                <tr>
+                                    <td>godzina:</td>
+                                    <td>{{ .StartHour }}</td>
+                                </tr>
+                                <tr>
+                                    <td>gdzie:</td>
+                                    <td>
+                                        <a href="{{ .LocationLink }}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration-color: #cfcfcf;">
+                                            {{ .Location }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>wolne miejsca:</td>
+                                    <td>{{ .CurrentCapacity }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div id="booking-form-{{ .ID }}">
+                            {{ if eq .CurrentCapacity 0 }}
+                            <div id="book-button-{{ .ID }}" class="book-button">
+                                <button class="btn-book" disabled>rezerwuj</button>
+                            </div>
+                            {{ else }}
+                            <div id="book-button-{{ .ID }}" class="book-button">
+                                <button class="btn-book"
+                                        onclick="collapseOpenBookBlocks()"
+                                        hx-get="/classes/{{ .ID }}/pending_bookings/form"
+                                        hx-swap="outerHTML"
+                                        hx-target="#booking-form-{{ .ID }}"
+                                        hx-trigger="click">
+                                    rezerwuj
+                                </button>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </form>
                 </div>
                 {{ end }}
+        </div>
+
+        <div class="about">
+            <div class="section-label">o mnie</div>
+            <div class="about-body">
+                <div class="about-text">
+                    <p>Na co dzień jestem programistą — znam wielogodzinne siedzenie przed kompem, napięte barki, sztywny kark i zmęczoną głowę.</p>
+                    <p>Jogi uczę z czystej pasji. Zacząłem ją praktykować dla siebie i aby lepiej zrozumieć co robię, wyjechałem do Indii — stolicy jogi — gdzie uczyłem się pod okiem wielu nauczycieli. Większość osób, które przychodzi na moje zajęcia po raz pierwszy, nie potrafi dotknąć palców u stóp. I to naprawdę nie ma znaczenia. Nie musisz być rozciągnięty ani mieć żadnego doświadczenia. Asany nie muszą być perfekcyjne. Praktyka uruchamia właściwy przepływ krwi i energii, co sprawi, że poczujesz się lepiej we własnym ciele. Joga to nie tylko praktyka fizyczna, ale także duchowa — na zajęciach dbam o to, aby Ci o tym przypominać.</p>
+                    <p>Dzisiaj prowadzę zajęcia w tradycyjnym stylu, ale także z poczuciem humoru — bez poczucia, że trzeba komukolwiek coś udowadniać.</p>
                 </div>
-            </form>
+                <div class="about-photo-wrap">
+                    <img class="about-photo" src="/web/static/img/otojoga.jpg" alt="Igor Oleś">
+                </div>
+            </div>
         </div>
-        {{ end }}
+
+        <div class="pricing">
+            <div class="section-label">cennik</div>
+            <div class="pricing-list">
+                <div class="pricing-row">
+                    <span class="pricing-amount">40 zł</span>
+                    <span class="pricing-label">zajęcia</span>
+                </div>
+                <div class="pricing-row">
+                    <span class="pricing-amount">20 zł</span>
+                    <span class="pricing-label">pierwsze zajęcia</span>
+                </div>
+                <div class="pricing-row">
+                    <span class="pricing-amount">180 zł</span>
+                    <span class="pricing-label">karnet (5 wejść)</span>
+                </div>
+                <div class="pricing-row">
+                    <span class="pricing-amount">100 zł</span>
+                    <span class="pricing-label">zajęcia indywidualne</span>
+                </div>
+            </div>
+        </div>
+
     </div>
-    <div id="info-container">
-        <p id="info-header-about">o mnie</p>
-        <div class="info-box-about">
-            <p>
-                jestem uczniem wspaniałej<br>
-                jogini Rachele Faiella<br>
-                <span class="half-break"></span>
-                ukończyłem kurs instruktora<br>
-                vinyasa yoga i ashtanga yoga<br>
-                RYT 200h (Rishikesh, India)<br>
-                <span class="half-break"></span>
-                jogi uczę u siebie w domu<br>
-                <span class="half-break"></span>
-                joga to dla mnie praktyka duchowa<br>
-                i nauka kontaktu ze swoim ciałem
-            </p>
-        </div>
-        <p id="info-header-price">cennik</p> 
-        <div class="info-box-price">
-            <table style="border-collapse: collapse;">
-                <tr>
-                    <td style="width:60px; padding-top: 10px;">40 zł</td>
-                    <td style="padding-top: 10px;">zajęcia</td>
-                </tr>
-                <tr>
-                    <td style="width:60px">20 zł</td>
-                    <td>pierwszy raz</td>
-                </tr>
-                <tr>
-                    <td style="padding-top: 10px; width:60px;">180 zł</td>
-                    <td style="padding-top: 10px;"> karnet (5)</td>
-                </tr>
-            </table>
-        </div>
-        <p id="info-header-contact">kontakt</p>
-        <div class="info-box-contact">
-            <p>
-                igor oleś<br>
-                <span class="half-break"></span>
-                +48 505 082 655<br>
-                gore.pakore.yogi@gmail.com
-            </p>
+
+    <div class="site-footer">
+        <div class="site-footer-inner">
+            <span>gore.pakore.yogi@gmail.com</span>
+            <span class="site-footer-sep footer-instagram-only">·</span>
+            <a class="instagram-link footer-instagram-only" href="https://www.instagram.com/gore.pakore.yogi" target="_blank" rel="noopener noreferrer">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="3" width="18" height="18" rx="5"/>
+                    <circle cx="12" cy="12" r="4.2"/>
+                    <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" stroke="none"/>
+                </svg>
+            </a>
+            <span class="site-footer-sep">·</span>
+            <span>+48 505 082 655</span>
         </div>
     </div>
 </div>
-</p><script>
+<script>
+    function collapseBookBlock(id) {
+        var block = document.getElementById('book-block-' + id);
+        var collapsedTemplate = document.getElementById('collapsed-' + id);
+        if (!block || !collapsedTemplate) {
+            return;
+        }
+        block.replaceWith(collapsedTemplate.content.cloneNode(true));
+        htmx.process(document.getElementById('booking-form-' + id));
+    }
+
+    function collapseOpenBookBlocks() {
+        document.querySelectorAll('.book-block').forEach(function (block) {
+            collapseBookBlock(block.id.replace('book-block-', ''));
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.class-container')) {
+            collapseOpenBookBlocks();
+        }
+    });
+
     document.addEventListener('htmx:beforeSwap', function(event) {
         if (event.detail.xhr.status >= 400) {
             event.detail.shouldSwap = true;  // force swap

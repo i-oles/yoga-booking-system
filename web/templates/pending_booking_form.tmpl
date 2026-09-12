@@ -45,10 +45,27 @@
             </span>
         </button>
     </form>
-    <button onclick="window.location.href='/'" class="btn-return">
+    <button type="button"
+            class="btn-return"
+            onclick="collapseBookBlock('{{ .ID }}')">
        < wróć
     </button>
 </div>
+
+<template id="collapsed-{{ .ID }}">
+<div id="booking-form-{{ .ID }}">
+    <div id="book-button-{{ .ID }}" class="book-button">
+        <button class="btn-book"
+                onclick="collapseOpenBookBlocks()"
+                hx-get="/classes/{{ .ID }}/pending_bookings/form"
+                hx-swap="outerHTML"
+                hx-target="#booking-form-{{ .ID }}"
+                hx-trigger="click">
+            rezerwuj
+        </button>
+    </div>
+</div>
+</template>
 <script>
     document.addEventListener('htmx:beforeSwap', function(event) {
         if (event.detail.xhr.status >= 400) {

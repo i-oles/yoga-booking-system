@@ -1,103 +1,268 @@
 * {
-    font-family: 'Open Sans', sans-serif;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
 }
 
 body {
+    font-family: 'Manrope', sans-serif;
     line-height: 1.5;
-    color: #000;
-    max-width: 100%;
-    background-color: #fff;
-    position: relative;
-    min-height: 80vh;
-    touch-action: pan-y;
+    color: oklch(22% 0.01 85);
+    background: oklch(97% 0.01 85);
+    min-height: 100vh;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    overflow-x: hidden;    height: 100%;
-    min-height: -webkit-fill-available; /* for Safari */
 }
 
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
+a {
+    color: #7E8E6D;
+    text-decoration: none;
+}
+
+a:hover {
+    opacity: 0.75;
+}
+
+h1, h4 {
+    margin: 0;
+}
+
+/* ============ Site shell (sticky footer) ============ */
+
+.site {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-main {
+    flex: 1;
     width: 100%;
-    height: 100%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.9));
-    z-index: -1;
-    opacity: 1;
-    height: 100vh;
-    height: -webkit-fill-available;
-    min-height: -webkit-fill-available;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 40px;
 }
 
-@supports (-webkit-touch-callout: none) {
-    body {
-        min-height: -webkit-fill-available;
-    }
-    
-    body::before {
-        height: -webkit-fill-available;
-    }
-}
-
-h1 {
-    text-align: center;
-    color: #000;
-    margin-bottom: 30px;
-    font-size: 2rem;
+.section-label {
+    font-size: 13px;
     font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: oklch(22% 0.01 85 / 0.55);
 }
+
+/* ============ Hero ============ */
+
+.hero {
+    padding: 150px 0 65px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 64px;
+}
+
+.hero-intro {
+    flex: 1;
+    min-width: 0;
+}
+
+.hero-logo {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 80px;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+}
+
+.hero-mark {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: 0.55em;
+    padding-left: 0.55em;
+    color: #7E8E6D;
+    margin-top: 26px;
+}
+
+.hero-rule {
+    margin-top: 52px;
+    width: 56px;
+    height: 1px;
+    background: oklch(22% 0.01 85 / 0.15);
+}
+
+.hero-tagline {
+    margin-top: 28px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: oklch(22% 0.01 85 / 0.6);
+    max-width: 400px;
+    font-style: italic;
+}
+
+.hero-photo-wrap {
+    flex-shrink: 0;
+}
+
+.hero-photo {
+    width: 440px;
+    height: 440px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 1px solid oklch(22% 0.01 85 / 0.12);
+}
+
+.instagram-link {
+    display: inline-flex;
+    color: #7E8E6D;
+}
+
+.hero-instagram-link {
+    display: none;
+}
+
+/* ============ Harmonogram (schedule) ============ */
+
+.schedule-heading {
+    padding: 0 0 40px;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 120px;
+}
+
+.vacation-banner {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(224, 224, 224, 0.8);
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    padding: 22px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* ============ O mnie ============ */
+
+.about {
+    padding: 0 0 120px;
+}
+
+.about-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 64px;
+    margin-top: 32px;
+}
+
+.about-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.about-text p {
+    font-size: 15px;
+    line-height: 1.85;
+    max-width: 480px;
+    margin: 0;
+}
+
+.about-text p + p {
+    margin-top: 24px;
+}
+
+.about-photo-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.about-photo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    border: 1px solid oklch(22% 0.01 85 / 0.12);
+}
+
+/* ============ Cennik ============ */
+
+.pricing {
+    padding: 0 0 120px;
+}
+
+.pricing-list {
+    margin-top: 32px;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 15px;
+}
+
+.pricing-row {
+    display: flex;
+}
+
+.pricing-amount {
+    width: 96px;
+    flex-shrink: 0;
+}
+
+.pricing-label {
+    color: oklch(22% 0.01 85 / 0.6);
+}
+
+/* ============ Footer ============ */
+
+.site-footer {
+    background: oklch(93% 0.012 85);
+    padding: 28px 0;
+}
+
+.site-footer-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    font-size: 14px;
+    color: oklch(22% 0.01 85 / 0.7);
+}
+
+.site-footer-sep {
+    opacity: 0.4;
+}
+
+/* ============ Shared: class card (schedule + confirmation/cancellation views) ============ */
 
 .cancellation-card,
 .confirmation-card,
 .error-card,
 .class-container {
     background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
     border: 1px solid rgba(224, 224, 224, 0.8);
+    font-family: 'Manrope', sans-serif;
     font-size: 0.8rem;
-    padding: 28px;
-    opacity: 0.8;
+    padding: 22px;
     transition: all 0.2s ease;
     border-radius: 4px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    flex: 1;
-    padding-bottom: 50px;
 }
 
 .class-container {
-    padding-bottom: 30px;
-    min-width: 190px;
-}
-
-.cancellation-card,
-.error-card,
-.confirmation-card {
-    padding-bottom: 30px;
-    width: 100%;
-    max-width: 240px;
-    margin: 0 auto;
-    margin-top: 20px;
-}
-
-.cancellation-card,
-.error-card {
-    height: 250px;
-}
-
-.class-title {
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: #2c3e50;
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(224, 224, 224, 0.5);
-}
-
-.info-box-price, .info-box-about, .info-box-contact {
-    padding-bottom: 10px;
+    position: relative;
 }
 
 .class-container:hover {
@@ -106,7 +271,83 @@ h1 {
     transform: translateY(-2px);
 }
 
+.class-container:has(.book-block) {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    box-shadow: none;
+    transform: none;
+}
+
+.cancellation-card,
+.error-card,
+.confirmation-card {
+    width: 100%;
+    max-width: 260px;
+    margin: 20px auto 0;
+}
+
+.class-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #000;
+    opacity: 0.6;
+    text-align: left;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    padding-top: 1px;
+    border-bottom: 1px solid rgba(224, 224, 224, 0.5);
+}
+
+/* Tabele z informacjami o zajęciach */
+.class-info table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.class-info td {
+    padding: 6px 0;
+    vertical-align: top;
+    font-family: 'Manrope', sans-serif;
+}
+
+.class-info td:first-child {
+    width: 50%;
+    color: #333;
+    font-weight: 300;
+}
+
+.class-info td:last-child {
+    color: #000;
+    font-weight: 300;
+}
+
+/* ============ Formularze / błędy / przyciski ============ */
+
+.book-block {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    top: 100%;
+    z-index: 5;
+    box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(224, 224, 224, 0.8);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 0 22px 22px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+}
+
+.book-block label {
+    display: block;
+    font-size: 0.75rem;
+}
+
 .form-input {
+    font-family: 'Manrope', sans-serif;
     background-color: #fff;
     border: 1px solid #e0e0e0;
     margin-top: 5px;
@@ -114,7 +355,6 @@ h1 {
     width: 100%;
     padding: 12px;
     border-radius: 0;
-    box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     height: 35px;
     font-size: 0.8rem;
@@ -125,98 +365,7 @@ h1 {
     outline: none;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
 }
-.vacation-info {
-    margin-top: 15px;
-    margin-left: -10px;
-    margin-bottom: 10px;
-    padding: 12px;
-    font-size: 1rem;
-}
 
-.half-break {
-  display: block;
-  content: "";
-  margin-top: 0.7em;
-}
-
-
-.msg-email-container {
-    font-family: 'Open Sans', sans-serif;
-    display: flex;
-    gap: 20px;
-    max-width: 360px;
-    margin-bottom: 5px;
-}
-
-/* Tabele z informacjami */
-.booking-info table,
-.class-info table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 15px;
-}
-
-.booking-info td,
-.class-info td {
-    padding: 6px 0;
-    vertical-align: top;
-}
-
-.booking-info td:first-child,
-.class-info td:first-child {
-    width: 50%;
-    color: #333;
-}
-
-.booking-info td:last-child,
-.class-info td:last-child {
-    color: #000;
-}
-
-/* Buttons */
-.btn-cancel,
-.btn-return,
-.btn-book {
-    border: 1px solid #000;
-    padding: 12px 20px;
-    margin-top: 16px;
-    text-align: center;
-    cursor: pointer;
-    width: 100%;
-    transition: all 0.2s ease;
-    background-color: transparent;
-    letter-spacing: 0.5px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    border-color: #a8a8a8;
-    border-radius: 4px;
-    min-height: 35px;
-    color: #000;
-    font-weight: 300;
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: #ccc;
-    color: #ccc;
-    box-shadow: none;
-}
-
-.btn-cancel:hover {
-    background-color: #CD5C5C;
-}
-
-.btn-return:hover,
-.btn-book:hover {
-    background-color: #727272;
-    color: #fff;
-}
-
-/* Pending Booking small error messages displayed before button */
 .err-msg {
     font-size: 0.8rem;
     color: #d32f2f;
@@ -238,15 +387,51 @@ button:disabled {
     padding-left: 8px;
 }
 
-.confirmation-message, .error-message {
-    color: #333;
-    font-size: 0.9rem;
-    margin-bottom: 30px;
-    margin-top: 40px;
+.btn-cancel,
+.btn-return,
+.btn-book {
+    font-family: 'Manrope', sans-serif;
+    border: 1px solid #d4d4d4;
+    padding: 12px 20px;
+    margin-top: 16px;
+    text-align: center;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    background-color: transparent;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    min-height: 35px;
+    color: #000;
+    font-weight: 300;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.booking-info {
-    margin-bottom: 40px;
+.cancellation-card .btn-cancel,
+.confirmation-card .btn-return {
+    margin-top: 32px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #ccc;
+    color: #ccc;
+    box-shadow: none;
+}
+
+.btn-cancel:hover {
+    background-color: #CD5C5C;
+}
+
+.btn-return:hover,
+.btn-book:hover {
+    background-color: #727272;
+    color: #fff;
 }
 
 @keyframes spin {
@@ -257,6 +442,7 @@ button:disabled {
 .btn-content {
     position: relative;
     width: 100%;
+    min-height: 1.5em;
 }
 
 .htmx-indicator {
@@ -273,7 +459,6 @@ button:disabled {
     opacity: 0.1;
 }
 
-/* Style dla tekstów w przycisku */
 .submit-text, .htmx-indicator {
     display: inline-block;
     text-align: center;
@@ -285,8 +470,8 @@ button:disabled {
     display: none;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(0,0,0,0.2);
-    border-top-color: rgba(0,0,0,0.7);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-top-color: rgba(0, 0, 0, 0.7);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
     position: absolute;
@@ -327,115 +512,175 @@ form.htmx-request .btn-book .submit-text {
     display: none;
 }
 
-#info-header-price,
-#info-header-about,
-#info-header-schedule,
-#info-header-contact {
-    font-style: bold;
+/* ============ Standalone pages (error / confirmation / cancellation) ============ */
+
+#error-container,
+#confirmation-container,
+#cancellation-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 100px 24px 24px;
 }
 
 /* mobile */
 @media (max-width: 760px) {
-    #page-grid {
-        grid-template-columns: 1fr;
-        display: grid;
-        padding-left: 15px;
-        padding-right: 15px;
-        padding-top: 100px;
-        overflow-y: auto;
-        grid-auto-rows: min-content;
-        overflow: visible;
-        height: auto;
-        margin-bottom: 0;
-        padding-bottom: 0;
-        font-weight: 300;
-        gap: 15px;
+    .site-main {
+        padding: 0 24px;
     }
 
-    #main-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 15px;
-        grid-column: 1;
-        padding-bottom: 20px;
+    #error-container,
+    #confirmation-container,
+    #cancellation-container {
+        padding: 24px;
     }
 
-    #info-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 15px;
-        grid-column: 1;
+    .hero {
+        padding: 50px 0 35px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 40px;
     }
 
-    #info-header-schedule {
-        padding-bottom: 20px;
+    .hero-logo {
+        font-size: 48px;
+    }
+
+    .hero-mark {
+        font-size: 16px;
+        margin-top: 18px;
+    }
+
+    .hero-rule {
+        margin-top: 32px;
+        width: 44px;
+    }
+
+    .hero-tagline {
+        margin-top: 24px;
+        font-size: 15px;
+        max-width: none;
+    }
+
+    .hero-photo-wrap {
+        width: 100%;
+        text-align: center;
+    }
+
+    .hero-photo {
+        width: 320px;
+        height: 320px;
+        margin: 0 auto;
+    }
+
+    .hero-instagram-link {
+        display: inline-flex;
+        justify-content: center;
+        color: #7E8E6D;
+        margin-top: 48px;
+        margin-bottom: 48px;
+    }
+
+    .schedule-heading {
+        font-size: 12px;
+        padding-bottom: 28px;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 80px;
+    }
+
+    .class-container {
+        padding: 24px;
+    }
+
+    .book-button .btn-book {
+        margin-top: 24px;
+    }
+
+    /* On mobile cards stack vertically, so an expanded card should push the
+       card below it down instead of overlaying it like on desktop. */
+    .book-block {
+        position: static;
+        left: auto;
+        right: auto;
+        top: auto;
+        z-index: auto;
+        margin-top: 16px;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background-color: transparent;
+    }
+
+    .class-container:has(.book-block) {
+        border-bottom: 1px solid rgba(224, 224, 224, 0.8);
+        border-radius: 4px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .about,
+    .pricing {
+        padding-bottom: 80px;
+    }
+
+    .about-body {
+        flex-direction: column;
+        gap: 28px;
+        margin-top: 24px;
+    }
+
+    .about-text p {
+        font-size: 15px;
+        line-height: 1.8;
+        max-width: none;
+    }
+
+    .about-text p + p {
+        margin-top: 20px;
+    }
+
+    .pricing {
+        padding-bottom: 120px;
+    }
+
+    .pricing-list {
+        margin-top: 24px;
+        font-size: 13px;
+    }
+
+    .pricing-amount {
+        width: 90px;
+    }
+
+    .site-footer {
+        padding: 14px 0;
+    }
+
+    .site-footer-inner {
+        padding: 0 24px;
+        gap: 10px;
+        font-size: 12px;
+    }
+
+    .footer-instagram-only {
+        display: none;
     }
 
     .class-info,
-    .class-container,
-    .cancellation-container,
-    .confirmation-container,
-    .error-container {
+    .class-container {
         font-size: 0.9rem;
-    }
-
-    .info-box-price,
-    .info-box-about,
-    .info-box-contact {
-        font-size: 0.9rem;
-        margin-left: 15px;
-        padding-bottom: 10px;
-    }
-
-    #info-header-price,
-    #info-header-about,
-    #info-header-schedule,
-    #info-header-contact {
-        color: grey;
-        opacity: 0.7;
-        font-size: 1.5rem;
-        height: 0px;
-        padding-top: 0;
-        padding-bottom: 0;
-        margin-top: 0;
-        font-weight: 300;
-    }
-
-    .info-box-price {
-        padding-bottom: 20px;
-    }
-
-    #cancellation-container,
-    #error-container,
-    #confirmation-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
     }
 
     .cancellation-card,
     .error-card,
     .confirmation-card {
-        padding-bottom: 40px;
         font-size: 0.9rem;
-        width: 100%;
-        max-width: 80%;
-        margin: 15px 15px 15px 15px;
-    }
-
-    .cancellation-card {
-        padding-bottom: 60px;
-    }
-
-    .error-card {
-        padding-bottom: 50px;
-    }
-
-    .msg-email-container {
-        flex-direction: column;
-        align-items: left;
-        margin-right: auto;
-        width: 250px;
+        max-width: none;
+        padding: 24px;
     }
 
     .btn-cancel,
@@ -444,185 +689,7 @@ form.htmx-request .btn-book .submit-text {
         font-size: 0.8rem;
     }
 
-    #info-container,
-    .class-container {
-        padding-bottom: 40px;
-    }
-
-    .pass-container {
-        padding-bottom: 50px;
-    }
-
     input, textarea, select {
         touch-action: manipulation;
     }
-
-    body::before {
-        height: 100vh;
-        height: -webkit-fill-available;
-        min-height: -webkit-fill-available;
-        max-height: 100vh;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-    }
 }
-
-/* tablet */
-@media (min-width: 761px) and (max-width: 900px) {
-    #page-grid {
-        grid-template-columns: 1.8fr 1.8fr;
-        display: grid;
-        padding-left: 80px;
-        padding-right: 80px;
-        padding-top: 100px;
-        gap: 15px;
-        font-weight: 300;
-    }
-
-    #main-container {
-        grid-column: 1 / 3;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-
-    #info-container {
-        grid-column: 1 / 3;
-        grid-template-columns: 1fr 1fr;
-        display: grid;
-        padding-top: 30px;
-        gap: 15px;
-        grid-template-rows: auto auto auto auto auto auto;
-    }
-
-    .info-header-about {
-        grid-column: 1/2;
-        grid-row: 1;
-        padding-top: 40px;
-    }
-
-    .info-box-about {
-        grid-column: 1/2;
-        grid-row: 2/ span 3;
-    }
-
-    #info-header-contact {
-        grid-column: 2/3;
-        grid-row: 3;
-    }
-  
-    .info-box-contact {
-        grid-column: 2/3;
-        grid-row: 4;
-        padding-bottom: 50px;
-    }
-
-    #info-header-price {
-        grid-column: 2/3;
-        grid-row: 1;
-        padding-bottom: 20px;
-    }
-
-    .info-box-price {
-        grid-column: 2/3;
-        grid-row: 2;
-    }
-
-    #info-header-schedule {
-        grid-column: 1 / span 2;
-        display: grid;
-    }
-
-    #info-header-price,
-    #info-header-about,
-    #info-header-schedule,
-    #info-header-contact {
-        color: grey;
-        opacity: 0.7;
-        font-size: 1.5rem;
-        height: 0px;
-        padding-bottom: 10px;
-        margin-top: 0;
-        font-weight: 300;
-    }
-
-    .info-box-about,
-    .info-box-contact,
-    .info-box-price {
-        padding-left: 10px;
-    }
-
-
-    #cancellation-container,
-    #error-container,
-    #confirmation-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .cancellation-card,
-    .error-container,
-    .confirmation-card {
-        padding-bottom: 40px;
-        width: 100%;
-        margin: 15px 15px 15px 15px;
-    }
-}
-
-@media (min-width: 900px) {
-    #page-grid {
-        display: grid;
-        grid-template-columns: 0.9fr 0.9fr 1.3fr 1fr;
-        gap: 20px;
-        padding-left: 100px; 
-        padding-right: 50px;
-        align-items: start;
-        grid-auto-rows: 1fr; 
-    }
-
-    #info-header-price,
-    #info-header-about,
-    #info-header-schedule,
-    #info-header-contact {
-        grid-column: 1 / span 2;
-        display: grid;
-        color: grey;
-        opacity: 0.7;
-        font-size: 1.5rem;
-        height: 0px;
-        padding-top: 0;
-        margin-top: 0;
-        font-weight: 300;
-    }
-
-    .info-box-about,
-    .info-box-contact,
-    .info-box-price {
-        padding-left: 10px;
-    }
-
-    #main-container {
-        display: grid;
-        grid-column: 1 / 3;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .class-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    #info-container {
-        grid-column: 4 / 5;
-        display: grid;
-        font-size: 0.8rem;
-        padding-top: 130px;
-        gap: 20px;
-        font-weight: 300;
-    }
-}
-

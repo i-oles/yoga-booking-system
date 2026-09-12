@@ -9,7 +9,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600&family=Manrope:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <div id="confirmation-container">
     <div class="confirmation-card">
@@ -18,39 +18,28 @@
         </svg>
         <h4 style="text-align: center; margin-bottom: 40px;">Rezerwacja potwierdzona!</h4>
         <div class="class-info">
-            <div class="class-title"
-                style="font-weight: 600; font-size: 14px; color: black; opacity: 0.6; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                {{ .ClassName }}
-            </div>
-            <table style="border-collapse: collapse; margin-top: 15px;">
+            <div class="class-title">{{ .ClassName }}</div>
+            <table>
                 <tr>
-                    <td style="font-weight:300;">poziom:</td>
-                    <td style="font-weight:500;">{{ .ClassLevel }}</td>
+                    <td>poziom:</td>
+                    <td>{{ .ClassLevel }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">dzień:</td>
-                    <td style="font-weight:500;">{{ .WeekDay }}</td>
+                    <td>dzień:</td>
+                    <td>{{ .WeekDay }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">data:</td>
-                    <td style="font-weight:500;">{{ .StartDate }}</td>
+                    <td>data:</td>
+                    <td>{{ .StartDate }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">godzina:</td>
-                    <td style="font-weight:500;">{{ .StartHour }}</td>
+                    <td>godzina:</td>
+                    <td>{{ .StartHour }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">gdzie:</td>
-                    <td style="font-weight:300;">
-                        <a
-                            href="{{ .LocationLink }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style="
-                                color: inherit;
-                                text-decoration-color: #cfcfcf;
-                            "
-                        >
+                    <td>gdzie:</td>
+                    <td>
+                        <a href="{{ .LocationLink }}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration-color: #cfcfcf;">
                             {{ .Location }}
                         </a>
                     </td>
