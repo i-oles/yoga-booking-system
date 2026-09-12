@@ -411,6 +411,11 @@ h1, h4 {
     justify-content: center;
 }
 
+.cancellation-card .btn-cancel,
+.confirmation-card .btn-return {
+    margin-top: 32px;
+}
+
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;

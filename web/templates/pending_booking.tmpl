@@ -1,9 +1,9 @@
-<div id="submit-create-block-{{ .ClassID }}">
+<div class="book-block" id="book-block-{{ .ClassID }}">
     <p class="pending-booking">
         kliknij na link wysłany na Twoją pocztę,<br>aby potwierdzić rezerwacje.<br>
         Link będzie aktywny przez 60 min.
     </p>
-    <button onclick="window.location.href='/'" class="btn-return">
+    <button type="button" class="btn-return" onclick="collapseBookBlock('{{ .ClassID }}')">
        < wróć
     </button>
 </div>
