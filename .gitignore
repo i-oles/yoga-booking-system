@@ -42,3 +42,6 @@ yoga.db
 
 # Design mockup working files (not part of the app)
 /assets/design-mockup/
+
+# Original, uncompressed backups of site images (not part of the app)
+/assets/img-originals/
