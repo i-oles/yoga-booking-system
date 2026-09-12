@@ -442,6 +442,7 @@ button:disabled {
 .btn-content {
     position: relative;
     width: 100%;
+    min-height: 1.5em;
 }
 
 .htmx-indicator {
