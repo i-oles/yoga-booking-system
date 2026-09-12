@@ -39,3 +39,6 @@ workspace.xml
 
 # DB
 yoga.db
+
+# Design mockup working files (not part of the app)
+/assets/design-mockup/

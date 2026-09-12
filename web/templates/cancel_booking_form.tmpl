@@ -9,35 +9,39 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600&family=Manrope:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <div id="cancellation-container">
-    <div style="mergin-bottom: 50px;" class="cancellation-card">
-        <div style="margin-bottom: 30px;" class="class-info">
-            <div class="class-title"
-                style="font-weight: 600; font-size: 14px; color: black; opacity: 0.6; text-align: left; margin-bottom: 15px; padding-bottom: 5px; padding-top: 1px; border-bottom: 1px solid rgba(224, 224, 224, 0.5);">
-                {{ .Class.ClassName }}
-            </div>
-            <table style="border-collapse: collapse; margin-top: 15px;">
+    <div class="cancellation-card">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"
+            viewBox="0 0 24 24" style="margin: 40 auto; display: block;">
+            <circle cx="12" cy="12" r="12" fill="#f39c12"/>
+            <rect x="10.8" y="6" width="2.4" height="8" rx="1.2" fill="#fff"/>
+            <circle cx="12" cy="17" r="1.4" fill="#fff"/>
+        </svg>
+        <h4 style="text-align: center; margin-bottom: 40px;">Odwołanie rezerwacji!</h4>
+        <div class="class-info">
+            <div class="class-title">{{ .Class.ClassName }}</div>
+            <table>
                 <tr>
-                    <td style="font-weight:300;">poziom:</td>
-                    <td style="font-weight:500;">{{ .Class.ClassLevel }}</td>
+                    <td>poziom:</td>
+                    <td>{{ .Class.ClassLevel }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">dzień:</td>
-                    <td style="font-weight:500;">{{ .Class.WeekDay }}</td>
+                    <td>dzień:</td>
+                    <td>{{ .Class.WeekDay }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">data:</td>
-                    <td style="font-weight:500;">{{ .Class.StartDate }}</td>
+                    <td>data:</td>
+                    <td>{{ .Class.StartDate }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">godzina:</td>
-                    <td style="font-weight:500;">{{ .Class.StartHour }}</td>
+                    <td>godzina:</td>
+                    <td>{{ .Class.StartHour }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight:300;">gdzie:</td>
-                    <td style="font-weight:500;">{{ .Class.Location }}</td>
+                    <td>gdzie:</td>
+                    <td>{{ .Class.Location }}</td>
                 </tr>
             </table>
             <button
