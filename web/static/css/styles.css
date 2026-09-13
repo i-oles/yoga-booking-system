@@ -379,6 +379,16 @@ h1, h4 {
     padding-left: 8px;
 }
 
+.error-msg {
+    font-size: 0.7rem;
+    text-align: center;
+    height: auto;
+    line-height: 1.4;
+    margin-top: 0;
+    margin-bottom: 30px;
+    word-wrap: break-word;
+}
+
 .pending-booking {
     font-size: 0.8rem;
     color: #d32f2f;

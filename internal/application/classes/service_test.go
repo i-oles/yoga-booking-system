@@ -1656,6 +1656,7 @@ func TestService_DeleteClass(t *testing.T) {
 							PassSlots: passes.BuildPassSlots(
 								[]domainModels.Booking{bookingWithPass}, pass1.TotalSlots, time.Now(),
 							),
+							PassID: &pass1.ID,
 						},
 						"Class cancelled",
 					).

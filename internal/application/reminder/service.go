@@ -160,6 +160,7 @@ func (s *service) remindBooking(ctx context.Context, booking models.Booking) err
 			passSlots := passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
 
 			notifierParams.PassSlots = passSlots
+			notifierParams.PassID = &pass.ID
 		}
 
 		cancellationLink := fmt.Sprintf(

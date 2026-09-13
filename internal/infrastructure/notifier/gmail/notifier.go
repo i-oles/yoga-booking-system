@@ -52,10 +52,13 @@ func NewNotifier(
 	}
 }
 
-func (n *notifier) NotifyPassActivation(email string, passSlots []models.PassSlot) error {
+func (n *notifier) NotifyPassActivation(
+	email string, passID int, passSlots []models.PassSlot,
+) error {
 	tmplData := notifierModels.PassActivationTmplData{
-		Signature:     n.signature,
+		PassID:        passID,
 		PassSlotsView: n.getPassSlotsView(passSlots),
+		Signature:     n.signature,
 	}
 
 	tmpl, err := template.ParseFiles(n.passActivationTmplPath, n.passTmplPath)
@@ -116,6 +119,7 @@ func (n *notifier) NotifyBookingConfirmation(
 		BaseTmplData:     baseTmplData,
 		CancellationLink: cancellationLink,
 		PassSlotsView:    n.getPassSlotsView(params.PassSlots),
+		PassID:           params.PassID,
 	}
 
 	tmpl, err := template.ParseFiles(n.bookingConfirmationTmplPath, n.passTmplPath, n.classTmplPath)
@@ -152,8 +156,9 @@ func (n *notifier) NotifyBookingCancellation(params models.NotifierParams) error
 	}
 
 	tmplData := notifierModels.BookingCancellationTmplData{
-		BaseTmplData:  n.getBaseTmplData(params, classStartTimeDetails),
+		PassID:        params.PassID,
 		PassSlotsView: n.getPassSlotsView(params.PassSlots),
+		BaseTmplData:  n.getBaseTmplData(params, classStartTimeDetails),
 	}
 
 	tmpl, err := template.ParseFiles(n.bookingCancellationTmplPath, n.passTmplPath, n.classTmplPath)
@@ -225,6 +230,7 @@ func (n *notifier) NotifyClassCancellation(params models.NotifierParams, msg str
 		BaseTmplData:  n.getBaseTmplData(params, classStartTimeDetails),
 		Message:       msg,
 		PassSlotsView: n.getPassSlotsView(params.PassSlots),
+		PassID:        params.PassID,
 	}
 
 	tmpl, err := template.ParseFiles(n.classCancellationTmplPath, n.passTmplPath, n.classTmplPath)
@@ -254,6 +260,7 @@ func (n *notifier) NotifyBookingReminder(
 		BaseTmplData:     n.getBaseTmplData(params, classStartTimeDetails),
 		CancellationLink: cancellationLink,
 		PassSlotsView:    n.getPassSlotsView(params.PassSlots),
+		PassID:           params.PassID,
 	}
 
 	tmpl, err := template.ParseFiles(n.classReminderTmplPath, n.passTmplPath, n.classTmplPath)

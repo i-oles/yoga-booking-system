@@ -368,7 +368,7 @@ func (s *service) ensureBookingCancellationAllowed(
 func (s *service) buildNotifierParams(
 	booking models.Booking, locationLink string, passSlots []models.PassSlot,
 ) models.NotifierParams {
-	return models.NotifierParams{
+	params := models.NotifierParams{
 		RecipientFirstName: booking.FirstName,
 		RecipientLastName:  booking.LastName,
 		RecipientEmail:     booking.Email,
@@ -379,6 +379,13 @@ func (s *service) buildNotifierParams(
 		LocationLink:       locationLink,
 		PassSlots:          passSlots,
 	}
+
+	if booking.Pass.Exists() {
+		passID := booking.Pass.Get().ID
+		params.PassID = &passID
+	}
+
+	return params
 }
 
 func (s *service) GetBookingCancellationForm(

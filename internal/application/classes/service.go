@@ -249,6 +249,8 @@ func (s *service) buildNotifierParamsForDelete(
 		}
 
 		notifierParams.PassSlots = passes.BuildPassSlots(usedBookings, pass.TotalSlots, time.Now())
+
+		notifierParams.PassID = &pass.ID
 	}
 
 	return notifierParams, nil

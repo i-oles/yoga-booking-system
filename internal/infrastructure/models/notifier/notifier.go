@@ -23,23 +23,27 @@ type ClassUpdateTmplData struct {
 type ClassCancellationTmplData struct {
 	BaseTmplData  BaseTmplData
 	Message       string
+	PassID        *int
 	PassSlotsView []PassSlotView
 }
 
 type BookingConfirmationTmplData struct {
 	BaseTmplData     BaseTmplData
 	CancellationLink string
+	PassID           *int
 	PassSlotsView    []PassSlotView
 }
 
 type BookingCancellationTmplData struct {
 	BaseTmplData  BaseTmplData
+	PassID        *int
 	PassSlotsView []PassSlotView
 }
 
 type BookingReminderTmplData struct {
 	BaseTmplData     BaseTmplData
 	CancellationLink string
+	PassID           *int
 	PassSlotsView    []PassSlotView
 }
 
@@ -50,6 +54,7 @@ type BookingConfirmationRequestTmplData struct {
 }
 
 type PassActivationTmplData struct {
+	PassID        int
 	PassSlotsView []PassSlotView
 	Signature     string
 }

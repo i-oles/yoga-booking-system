@@ -126,15 +126,15 @@ func (mr *MockINotifierMockRecorder) NotifyConfirmationLink(email, firstName, co
 }
 
 // NotifyPassActivation mocks base method.
-func (m *MockINotifier) NotifyPassActivation(email string, passSlots []models.PassSlot) error {
+func (m *MockINotifier) NotifyPassActivation(email string, passID int, passSlots []models.PassSlot) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NotifyPassActivation", email, passSlots)
+	ret := m.ctrl.Call(m, "NotifyPassActivation", email, passID, passSlots)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // NotifyPassActivation indicates an expected call of NotifyPassActivation.
-func (mr *MockINotifierMockRecorder) NotifyPassActivation(email, passSlots any) *gomock.Call {
+func (mr *MockINotifierMockRecorder) NotifyPassActivation(email, passID, passSlots any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyPassActivation", reflect.TypeOf((*MockINotifier)(nil).NotifyPassActivation), email, passSlots)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyPassActivation", reflect.TypeOf((*MockINotifier)(nil).NotifyPassActivation), email, passID, passSlots)
 }

@@ -14,6 +14,7 @@ type NotifierParams struct {
 	Location           string
 	LocationLink       string
 	PassSlots          []PassSlot
+	PassID             *int
 }
 
 type OperationStatus string
