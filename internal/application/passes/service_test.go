@@ -315,6 +315,7 @@ func TestService_ActivatePass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyPassActivation(
 						data.pass.Email,
+						data.pass.ID,
 						gomock.Any(),
 					).
 					Return(assert.AnError)
@@ -354,6 +355,7 @@ func TestService_ActivatePass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyPassActivation(
 						data.pass.Email,
+						data.pass.ID,
 						gomock.Any(),
 					).
 					Return(nil)
@@ -429,6 +431,7 @@ func TestService_ActivatePass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyPassActivation(
 						data.pass.Email,
+						data.pass.ID,
 						gomock.Any(),
 					).
 					Return(nil)
@@ -518,6 +521,7 @@ func TestService_ActivatePass(t *testing.T) {
 				notifier.EXPECT().
 					NotifyPassActivation(
 						data.pass.Email,
+						data.pass.ID,
 						gomock.Any(),
 					).
 					Return(nil)

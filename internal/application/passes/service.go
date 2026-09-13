@@ -70,7 +70,7 @@ func (s *service) ActivatePass(
 
 	passSlots := passes.BuildPassSlots(updatedBookings, totalPassSlots, time.Now())
 
-	err = s.notifier.NotifyPassActivation(email, passSlots)
+	err = s.notifier.NotifyPassActivation(email, pass.ID, passSlots)
 	if err != nil {
 		return PassActivation{},
 			fmt.Errorf("could not notify pass activation for %s with %v: %w", email, passSlots, err)
