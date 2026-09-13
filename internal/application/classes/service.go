@@ -18,12 +18,12 @@ import (
 )
 
 type service struct {
-	classesRepo      repositories.IClasses
-	bookingsRepo     repositories.IBookings
-	unitOfWork       repositories.IUnitOfWork
-	notifier         notifier.INotifier
-	locationResolver location.ILinkProvider
-	domainAddr       string
+	classesRepo          repositories.IClasses
+	bookingsRepo         repositories.IBookings
+	unitOfWork           repositories.IUnitOfWork
+	notifier             notifier.INotifier
+	locationLinkProvider location.ILinkProvider
+	domainAddr           string
 }
 
 func NewService(
@@ -31,16 +31,16 @@ func NewService(
 	bookingsRepo repositories.IBookings,
 	unitOfWork repositories.IUnitOfWork,
 	notifier notifier.INotifier,
-	locationResolver location.ILinkProvider,
+	locationLinkProvider location.ILinkProvider,
 	domainAddr string,
 ) *service {
 	return &service{
-		classesRepo:      classesRepo,
-		bookingsRepo:     bookingsRepo,
-		unitOfWork:       unitOfWork,
-		notifier:         notifier,
-		locationResolver: locationResolver,
-		domainAddr:       domainAddr,
+		classesRepo:          classesRepo,
+		bookingsRepo:         bookingsRepo,
+		unitOfWork:           unitOfWork,
+		notifier:             notifier,
+		locationLinkProvider: locationLinkProvider,
+		domainAddr:           domainAddr,
 	}
 }
 
@@ -97,7 +97,7 @@ func (s *service) buildClassPresentations(
 			return nil, fmt.Errorf("could not get bookings for class %v: %w", class.ID, err)
 		}
 
-		locationLink, err := s.locationResolver.GetLink(class.Location)
+		locationLink, err := s.locationLinkProvider.GetLink(class.Location)
 		if err != nil {
 			return nil, fmt.Errorf("could not get location link for: %s, err: %w", class.Location, err)
 		}
@@ -125,7 +125,7 @@ func (s *service) CreateClasses(
 		return nil, fmt.Errorf("could not get existing classes: %w", err)
 	}
 
-	err = validateClasses(newClasses, existingClasses)
+	err = s.validateClasses(newClasses, existingClasses)
 	if err != nil {
 		return nil, api.ErrValidation(err)
 	}
@@ -214,7 +214,7 @@ func (s *service) getLocationLink(bookings []models.Booking) (string, error) {
 
 	location := bookings[0].Class.Location
 
-	locationLink, err := s.locationResolver.GetLink(location)
+	locationLink, err := s.locationLinkProvider.GetLink(location)
 	if err != nil {
 		return "", fmt.Errorf("could not get location link for location %q: %w", location, err)
 	}
@@ -347,7 +347,7 @@ func (s *service) sendInformationAboutClassUpdateToUsers(
 		return fmt.Errorf("could not get bookings for class %v: %w", updatedClass.ID, err)
 	}
 
-	locationLink, err := s.locationResolver.GetLink(updatedClass.Location)
+	locationLink, err := s.locationLinkProvider.GetLink(updatedClass.Location)
 	if err != nil {
 		return fmt.Errorf("could not get location link for location %s: %w", updatedClass.Location, err)
 	}
@@ -423,11 +423,16 @@ func getDataForClassUpdate(update UpdateClassCommand) (map[string]any, error) {
 	return updateData, nil
 }
 
-func validateClasses(newClasses, existingClasses []models.Class) error {
+func (s *service) validateClasses(newClasses, existingClasses []models.Class) error {
 	for _, class := range newClasses {
 		err := validateClassStartTime(class.ID, class.StartTime, existingClasses)
 		if err != nil {
 			return fmt.Errorf("startTime validation failed %w", err)
+		}
+
+		_, err = s.locationLinkProvider.GetLink(class.Location)
+		if err != nil {
+			return fmt.Errorf("location unknown: %s, err: %w", class.Location, err)
 		}
 	}
 
