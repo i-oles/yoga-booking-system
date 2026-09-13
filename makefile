@@ -1,6 +1,9 @@
 run:
 	go run cmd/yoga/main.go
 
+seed:
+	./scripts/seed.sh
+
 lint:
 	golangci-lint run ./...
 

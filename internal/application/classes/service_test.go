@@ -508,9 +508,12 @@ func TestService_CreateClasses(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name             string
-		newClasses       []domainModels.Class
-		mocks            func(classRepo *mock.MockIClasses)
+		name       string
+		newClasses []domainModels.Class
+		mocks      func(
+			classRepo *mock.MockIClasses,
+			locationLinkProvider *mock.MockILinkProvider,
+		)
 		want             []domainModels.Class
 		wantError        bool
 		errorContains    string
@@ -519,8 +522,16 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Create one valid class",
 			newClasses: []domainModels.Class{futureClass},
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("link-a", nil)
+
 				classRepo.EXPECT().Insert(gomock.Any(), []domainModels.Class{futureClass}).Return(
 					[]domainModels.Class{futureClass},
 					nil,
@@ -531,8 +542,18 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Create valid classes",
 			newClasses: futureClasses,
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
+
+				for _, class := range futureClasses {
+					locationLinkProvider.EXPECT().
+						GetLink(class.Location).
+						Return("link", nil)
+				}
+
 				classRepo.EXPECT().Insert(gomock.Any(), futureClasses).Return(futureClasses, nil)
 			},
 			want: futureClasses,
@@ -540,7 +561,10 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Validation error - expired class",
 			newClasses: []domainModels.Class{pastClass},
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				_ *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
 			},
 			wantError:        true,
@@ -550,7 +574,10 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Validation error - all class should start in future",
 			newClasses: pastAndFutureClasses,
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				_ *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).Return(futureClasses, nil)
 			},
 			wantError:        true,
@@ -560,7 +587,10 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Validation error - exists class with the same time",
 			newClasses: futureClasses,
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				_ *mock.MockILinkProvider,
+			) {
 				conflictingClass := domainModels.Class{
 					ID:          uuid.New(),
 					StartTime:   futureTime1,
@@ -577,9 +607,29 @@ func TestService_CreateClasses(t *testing.T) {
 			wantAPIErrorCode: ptr.Of(api.BadRequestCode),
 		},
 		{
+			name:       "Validation error - unknown location",
+			newClasses: []domainModels.Class{futureClass},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(futureClass.Location).
+					Return("", errors.New("location not found"))
+			},
+			wantError:        true,
+			errorContains:    "location unknown",
+			wantAPIErrorCode: ptr.Of(api.BadRequestCode),
+		},
+		{
 			name:       "Repository list error",
 			newClasses: futureClasses,
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				_ *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).
 					Return([]domainModels.Class{}, errors.New("db error"))
 			},
@@ -589,8 +639,18 @@ func TestService_CreateClasses(t *testing.T) {
 		{
 			name:       "Repository insert error",
 			newClasses: futureClasses,
-			mocks: func(classRepo *mock.MockIClasses) {
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
 				classRepo.EXPECT().List(gomock.Any()).Return([]domainModels.Class{pastClass}, nil)
+
+				for _, class := range futureClasses {
+					locationLinkProvider.EXPECT().
+						GetLink(class.Location).
+						Return("link", nil)
+				}
+
 				classRepo.EXPECT().Insert(gomock.Any(), futureClasses).
 					Return([]domainModels.Class{}, errors.New("db error"))
 			},
@@ -607,14 +667,15 @@ func TestService_CreateClasses(t *testing.T) {
 			defer ctrl.Finish()
 
 			classRepo := mock.NewMockIClasses(ctrl)
-			tt.mocks(classRepo)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
+			tt.mocks(classRepo, locationLinkProvider)
 
 			service := NewService(
 				classRepo,
 				mock.NewMockIBookings(ctrl),
 				mock.NewMockIUnitOfWork(ctrl),
 				mock.NewMockINotifier(ctrl),
-				mock.NewMockILinkProvider(ctrl),
+				locationLinkProvider,
 				"testDomainAddr",
 			)
 
