@@ -163,31 +163,14 @@
     </div>
 </div>
 <script>
-    // Keeps a container's on-screen position stable across a layout-shifting change.
-    function withScrollAnchor(container, mutate) {
-        if (!container) {
-            mutate();
-            return;
-        }
-        var beforeTop = container.getBoundingClientRect().top;
-        mutate();
-        var afterTop = container.getBoundingClientRect().top;
-        var delta = afterTop - beforeTop;
-        if (delta !== 0) {
-            window.scrollBy(0, delta);
-        }
-    }
-
     function collapseBookBlock(id) {
         var block = document.getElementById('book-block-' + id);
         var collapsedTemplate = document.getElementById('collapsed-' + id);
         if (!block || !collapsedTemplate) {
             return;
         }
-        withScrollAnchor(block.closest('.class-container'), function () {
-            block.replaceWith(collapsedTemplate.content.cloneNode(true));
-            htmx.process(document.getElementById('booking-form-' + id));
-        });
+        block.replaceWith(collapsedTemplate.content.cloneNode(true));
+        htmx.process(document.getElementById('booking-form-' + id));
     }
 
     function collapseOpenBookBlocks() {
@@ -199,31 +182,6 @@
     document.addEventListener('click', function (event) {
         if (!event.target.closest('.class-container')) {
             collapseOpenBookBlocks();
-        }
-    });
-
-    document.addEventListener('htmx:beforeRequest', function (event) {
-        if (document.activeElement && typeof document.activeElement.blur === 'function') {
-            document.activeElement.blur();
-        }
-    });
-
-    var htmxScrollAnchor = null;
-
-    document.addEventListener('htmx:beforeSwap', function (event) {
-        var container = event.detail.target.closest('.class-container');
-        htmxScrollAnchor = container
-            ? { el: container, top: container.getBoundingClientRect().top }
-            : null;
-    });
-
-    document.addEventListener('htmx:afterSwap', function (event) {
-        if (htmxScrollAnchor) {
-            var delta = htmxScrollAnchor.el.getBoundingClientRect().top - htmxScrollAnchor.top;
-            if (delta !== 0) {
-                window.scrollBy(0, delta);
-            }
-            htmxScrollAnchor = null;
         }
     });
 
