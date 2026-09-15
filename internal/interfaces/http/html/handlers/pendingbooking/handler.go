@@ -28,7 +28,6 @@ func NewHandler(
 	}
 }
 
-// TODO: check if you really need to pass ClassID to template here.
 func (h *handler) Handle(ginCtx *gin.Context) {
 	var form dto.PendingBookingForm
 	if err := ginCtx.ShouldBind(&form); err != nil {
