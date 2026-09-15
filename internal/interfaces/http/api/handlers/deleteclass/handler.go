@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"main/internal/application/classes"
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -31,7 +32,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&dtoDeleteClassRequest)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -40,7 +41,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	classID, err := uuid.Parse(classIDStr)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}

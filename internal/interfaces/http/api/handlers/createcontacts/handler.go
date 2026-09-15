@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/domain/repositories"
 	"main/internal/infrastructure/errs"
 	"main/internal/interfaces/http/api/dto"
@@ -32,7 +33,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&createContactsRequest)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}

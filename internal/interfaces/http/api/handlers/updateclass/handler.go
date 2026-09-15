@@ -1,9 +1,11 @@
 package updateclass
 
 import (
+	"fmt"
 	"net/http"
 
 	"main/internal/application/classes"
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -31,7 +33,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&dtoUpdateClass)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -39,14 +41,14 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	var uri dto.UpdateClassURI
 
 	if err := ginCtx.ShouldBindUri(&uri); err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
 
 	parsedUUID, err := uuid.Parse(uri.ClassID)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -71,7 +73,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	response, err := dto.ToClassDataResponse(classUpdateCommand)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, fmt.Errorf("DTOResponse: %w", err))
 
 		return
 	}
