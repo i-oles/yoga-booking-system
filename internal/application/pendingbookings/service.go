@@ -18,7 +18,7 @@ import (
 const (
 	allowedTotalPendingBookingsLimit = 200
 	tokenLength                      = 32
-	deadlineBeforeClassStart         = 3 * time.Hour
+	deadlineBeforeClassStart         = 4 * time.Hour
 )
 
 type service struct {

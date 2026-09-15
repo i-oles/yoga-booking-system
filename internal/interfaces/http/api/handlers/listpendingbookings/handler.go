@@ -1,6 +1,7 @@
 package listpendingbookings
 
 import (
+	"fmt"
 	"net/http"
 
 	"main/internal/domain/repositories"
@@ -37,7 +38,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	pendingBookingsListResponse, err := dto.ToPendingBookingsListResponse(allPendingBookings)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, fmt.Errorf("DTOResponse: %w", err))
 
 		return
 	}

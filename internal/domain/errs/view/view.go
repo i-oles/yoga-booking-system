@@ -94,7 +94,8 @@ func ErrTooLateToBook(classID uuid.UUID, err error) *BusinessError {
 		Code:    TooLateToBook,
 		ClassID: &classID,
 		Message: "Zajęcia nie mają żadnej innej rezerwacji, " +
-			"a do rozpoczęcia zostało zbyt mało czasu by zarezerwować te zajęcia.",
+			"a do rozpoczęcia zostało zbyt mało czasu by zarezerwować te zajęcia." +
+			"...ale :) napisz do mnie i może będę tak miły i zrobię wyjątek.",
 		Err: err,
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"main/internal/application/bookings"
+	domainErrs "main/internal/domain/errs/api"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +31,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	bookingID, err := uuid.Parse(bookingIDStr)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
