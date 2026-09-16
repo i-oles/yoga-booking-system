@@ -2,7 +2,6 @@ package dto
 
 import (
 	"fmt"
-	"time"
 
 	"main/internal/application/classes"
 	"main/internal/domain/models"
@@ -12,11 +11,11 @@ import (
 )
 
 type CreateClassRequest struct {
-	StartTime   time.Time `binding:"required" json:"start_time"  time_format:"2006-01-02T15:04:05Z07:00"` //nolint
-	ClassLevel  string    `binding:"required,min=3,max=40" json:"class_level"`
-	ClassName   string    `binding:"required,min=3,max=60" json:"class_name"`
-	MaxCapacity int       `binding:"gte=1" json:"max_capacity"`
-	Location    string    `binding:"required" json:"location"`
+	StartTimeWarsawLocal string `binding:"required" json:"start_time"`
+	ClassLevel           string `binding:"required,min=3,max=40" json:"class_level"`
+	ClassName            string `binding:"required,min=3,max=60" json:"class_name"`
+	MaxCapacity          int    `binding:"gte=1" json:"max_capacity"`
+	Location             string `binding:"required" json:"location"`
 }
 
 type ListClassesRequest struct {
@@ -29,12 +28,12 @@ type DeleteClassRequest struct {
 }
 
 type UpdateClassRequest struct {
-	StartTime   *time.Time `json:"start_time"`
-	ClassLevel  *string    `json:"class_level"`
-	ClassName   *string    `json:"class_name"`
-	MaxCapacity *int       `json:"max_capacity"`
-	Location    *string    `json:"location"`
-	Message     *string    `json:"message"`
+	StartTimeWarsawLocal *string `json:"start_time"`
+	ClassLevel           *string `json:"class_level"`
+	ClassName            *string `json:"class_name"`
+	MaxCapacity          *int    `json:"max_capacity"`
+	Location             *string `json:"location"`
+	Message              *string `json:"message"`
 }
 
 type UpdateClassURI struct {

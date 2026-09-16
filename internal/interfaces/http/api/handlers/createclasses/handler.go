@@ -9,6 +9,7 @@ import (
 	"main/internal/domain/models"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
+	"main/pkg/converter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,9 +43,18 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	classes := make([]models.Class, 0, len(createClassesRequest))
 
 	for _, dtoClass := range createClassesRequest {
+		startTime, err := converter.ParseWarsawTime(
+			converter.DateTimeLayout, dtoClass.StartTimeWarsawLocal,
+		)
+		if err != nil {
+			h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
+
+			return
+		}
+
 		class := models.Class{
 			ID:          uuid.New(),
-			StartTime:   dtoClass.StartTime.UTC(),
+			StartTime:   startTime,
 			ClassLevel:  dtoClass.ClassLevel,
 			ClassName:   dtoClass.ClassName,
 			MaxCapacity: dtoClass.MaxCapacity,

@@ -3,11 +3,13 @@ package updateclass
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"main/internal/application/classes"
 	domainErrs "main/internal/domain/errs/api"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
+	"main/pkg/converter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -53,10 +55,17 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 		return
 	}
 
+	startTime, err := parseStartTime(dtoUpdateClass.StartTimeWarsawLocal)
+	if err != nil {
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
+
+		return
+	}
+
 	ctx := ginCtx.Request.Context()
 
 	update := classes.UpdateClassCommand{
-		StartTime:   dtoUpdateClass.StartTime,
+		StartTime:   startTime,
 		ClassLevel:  dtoUpdateClass.ClassLevel,
 		ClassName:   dtoUpdateClass.ClassName,
 		MaxCapacity: dtoUpdateClass.MaxCapacity,
@@ -79,4 +88,17 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	}
 
 	ginCtx.JSON(http.StatusOK, response)
+}
+
+func parseStartTime(warsawLocal *string) (*time.Time, error) {
+	if warsawLocal == nil {
+		return nil, nil //nolint:nilnil
+	}
+
+	parsed, err := converter.ParseWarsawTime(converter.DateTimeLayout, *warsawLocal)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse start time: %w", err)
+	}
+
+	return &parsed, nil
 }

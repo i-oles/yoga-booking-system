@@ -12,6 +12,7 @@ import (
 	domainErrs "main/internal/domain/errs/api"
 	apiErrHandler "main/internal/interfaces/http/api/errs/handler"
 	mockclasses "main/mock/classes"
+	"main/pkg/converter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -136,7 +137,14 @@ func TestHandler_Handle(t *testing.T) {
 			name: "failure - message required when updating start time",
 			url:  "/api/v1/classes/" + testClassID.String(),
 			body: map[string]any{
-				"start_time": time.Date(2026, 9, 10, 18, 30, 0, 0, time.UTC).Format(time.RFC3339),
+				"start_time": func() string {
+					instant := time.Date(2026, 9, 10, 18, 30, 0, 0, time.UTC)
+
+					warsawTime, err := converter.ConvertToWarsawTime(instant)
+					require.NoError(t, err)
+
+					return warsawTime.Format(converter.DateTimeLayout)
+				}(),
 			},
 			mocks: func(
 				service *mockclasses.MockIService,
