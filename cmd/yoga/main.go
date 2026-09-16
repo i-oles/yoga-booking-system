@@ -117,6 +117,7 @@ func main() {
 		defer cancel()
 
 		remindBookings(reminderCtx, components.reminder)
+		remindOwnerToScheduleMoreClasses(reminderCtx, components.reminder)
 	}(cfg.ContextTimeout.Duration)
 
 	srv := &http.Server{
@@ -232,8 +233,10 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		classesRepo,
 		bookingsRepo,
 		emailNotifier,
+		sender,
 		locationResolver,
 		cfg.DomainAddr,
+		cfg.Notifier.Login,
 	)
 
 	return Components{
@@ -405,6 +408,18 @@ func remindBookings(ctx context.Context, reminder reminder.IReminderService) {
 			slog.Warn("remind classes timeout exceeded")
 		} else {
 			slog.Error("failed to remind classes async",
+				slog.String("err", err.Error()))
+		}
+	}
+}
+
+func remindOwnerToScheduleMoreClasses(ctx context.Context, reminder reminder.IReminderService) {
+	err := reminder.RemindToScheduleMoreClasses(ctx)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			slog.Warn("remind owner to schedule more classes timeout exceeded")
+		} else {
+			slog.Error("failed to remind owner to schedule more classes async",
 				slog.String("err", err.Error()))
 		}
 	}

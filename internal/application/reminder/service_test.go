@@ -7,6 +7,7 @@ import (
 
 	"main/internal/domain/models"
 	"main/internal/domain/repositories"
+	"main/internal/infrastructure/sender"
 	"main/mock"
 	"main/pkg/optional"
 
@@ -36,6 +37,7 @@ var (
 	testToken        = "token"
 	testLocationLink = "https://google.maps.com"
 	testDomain       = "https://test.pl"
+	testOwnerEmail   = "owner@test.pl"
 )
 
 type testData struct {
@@ -799,11 +801,158 @@ func TestService_RemindBookings(t *testing.T) {
 				classesRepo,
 				bookingsRepo,
 				notifier,
+				mock.NewMockIEmailSender(ctrl),
 				locationLinkProvider,
 				testDomain,
+				testOwnerEmail,
 			)
 
 			err := service.RemindBookings(context.Background())
+
+			if tt.wantError {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.errorContains)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestService_RemindToScheduleMoreClasses(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+
+		mocks func(
+			classesRepo *mock.MockIClasses,
+			emailSender *mock.MockIEmailSender,
+		)
+
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name: "Failure - could not count upcoming classes",
+
+			mocks: func(
+				classesRepo *mock.MockIClasses,
+				emailSender *mock.MockIEmailSender,
+			) {
+				classesRepo.EXPECT().
+					CountUpcomingClasses(gomock.Any()).
+					Return(0, assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not count upcoming classes",
+		},
+		{
+			name: "Success - enough upcoming classes, no reminder sent",
+
+			mocks: func(
+				classesRepo *mock.MockIClasses,
+				emailSender *mock.MockIEmailSender,
+			) {
+				classesRepo.EXPECT().
+					CountUpcomingClasses(gomock.Any()).
+					Return(5, nil)
+			},
+		},
+		{
+			name: "Success - upcoming classes count at threshold sends reminder",
+
+			mocks: func(
+				classesRepo *mock.MockIClasses,
+				emailSender *mock.MockIEmailSender,
+			) {
+				classesRepo.EXPECT().
+					CountUpcomingClasses(gomock.Any()).
+					Return(4, nil)
+
+				emailSender.EXPECT().
+					Send(gomock.Any()).
+					DoAndReturn(func(messages ...sender.Message) error {
+						require.Len(t, messages, 1)
+
+						msg := messages[0]
+						assert.Equal(t, testOwnerEmail, msg.From)
+						assert.Equal(t, testOwnerEmail, msg.To)
+						assert.Contains(t, msg.Subject, "4")
+
+						return nil
+					})
+			},
+		},
+		{
+			name: "Success - no upcoming classes sends reminder",
+
+			mocks: func(
+				classesRepo *mock.MockIClasses,
+				emailSender *mock.MockIEmailSender,
+			) {
+				classesRepo.EXPECT().
+					CountUpcomingClasses(gomock.Any()).
+					Return(0, nil)
+
+				emailSender.EXPECT().
+					Send(gomock.Any()).
+					Return(nil)
+			},
+		},
+		{
+			name: "Failure - could not send reminder",
+
+			mocks: func(
+				classesRepo *mock.MockIClasses,
+				emailSender *mock.MockIEmailSender,
+			) {
+				classesRepo.EXPECT().
+					CountUpcomingClasses(gomock.Any()).
+					Return(1, nil)
+
+				emailSender.EXPECT().
+					Send(gomock.Any()).
+					Return(assert.AnError)
+			},
+
+			wantError:     true,
+			errorContains: "could not send reminder to owner to schedule more classes",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			unitOfWork := mock.NewMockIUnitOfWork(ctrl)
+			classesRepo := mock.NewMockIClasses(ctrl)
+			bookingsRepo := mock.NewMockIBookings(ctrl)
+			notifier := mock.NewMockINotifier(ctrl)
+			emailSender := mock.NewMockIEmailSender(ctrl)
+			locationLinkProvider := mock.NewMockILinkProvider(ctrl)
+
+			if tt.mocks != nil {
+				tt.mocks(classesRepo, emailSender)
+			}
+
+			service := New(
+				unitOfWork,
+				classesRepo,
+				bookingsRepo,
+				notifier,
+				emailSender,
+				locationLinkProvider,
+				testDomain,
+				testOwnerEmail,
+			)
+
+			err := service.RemindToScheduleMoreClasses(context.Background())
 
 			if tt.wantError {
 				require.Error(t, err)

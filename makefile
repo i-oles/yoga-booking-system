@@ -23,6 +23,7 @@ mocks:
 	mockgen --source=internal/application/location/contract.go --destination=mock/location_link_provider.go --package=mock
 	mockgen --source=internal/domain/repositories/unit_of_work.go --destination=mock/unit_of_work.go --package=mock
 	mockgen --source=internal/domain/notifier/notifier.go --destination=mock/notifier.go --package=mock
+	mockgen --source=internal/infrastructure/sender/sender.go --destination=mock/sender.go --package=mock
 
 	mockgen --source=internal/interfaces/http/html/errs/errs.go --destination=mock/html_errs.go --package=mock
 
