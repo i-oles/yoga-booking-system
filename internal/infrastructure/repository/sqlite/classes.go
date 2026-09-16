@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"main/internal/domain/models"
 	"main/internal/infrastructure/errs"
@@ -113,4 +114,17 @@ func (r *classesRepo) Update(
 	}
 
 	return sqlClass.ToDomain(), nil
+}
+
+func (r *classesRepo) CountUpcomingClasses(ctx context.Context) (int, error) {
+	var count int64
+
+	if err := r.db.WithContext(ctx).
+		Model(&db.SQLClass{}).
+		Where("start_time > ?", time.Now()).
+		Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("could not count upcoming classes: %w", err)
+	}
+
+	return int(count), nil
 }

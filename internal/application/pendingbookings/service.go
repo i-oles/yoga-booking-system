@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	allowedTotalPendingBookingsLimit = 200
-	tokenLength                      = 32
-	deadlineBeforeClassStart         = 3 * time.Hour
+	allowedTotalPendingBookingsLimit    = 200
+	allowedPendingBookingsPerClassLimit = 2
+	tokenLength                         = 32
+	deadlineBeforeClassStart            = 4 * time.Hour
 )
 
 type service struct {
@@ -109,6 +110,23 @@ func (s *service) ensurePendingBookingCreationAllowed(
 	classID uuid.UUID,
 	email string,
 ) error {
+	if err := s.ensureNotAlreadyBooked(ctx, repos, classID, email); err != nil {
+		return err
+	}
+
+	if err := s.ensurePendingBookingsLimitNotExceeded(ctx, repos, classID, email); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) ensureNotAlreadyBooked(
+	ctx context.Context,
+	repos repositories.Repositories,
+	classID uuid.UUID,
+	email string,
+) error {
 	_, err := repos.Bookings.GetByEmailAndClassID(ctx, classID, email)
 	if err == nil {
 		return viewErrors.ErrBookingAlreadyExists(
@@ -122,6 +140,15 @@ func (s *service) ensurePendingBookingCreationAllowed(
 		return fmt.Errorf("could not get booking: %w", err)
 	}
 
+	return nil
+}
+
+func (s *service) ensurePendingBookingsLimitNotExceeded(
+	ctx context.Context,
+	repos repositories.Repositories,
+	classID uuid.UUID,
+	email string,
+) error {
 	pendingBookings, err := repos.PendingBookings.List(ctx)
 	if err != nil {
 		return fmt.Errorf("could not list pending bookings: %w", err)
@@ -139,7 +166,7 @@ func (s *service) ensurePendingBookingCreationAllowed(
 		}
 	}
 
-	if count >= 2 {
+	if count >= allowedPendingBookingsPerClassLimit {
 		return viewErrors.ErrTooManyPendingBookings(
 			classID,
 			email,

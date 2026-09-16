@@ -22,6 +22,7 @@ type IClasses interface {
 	Insert(ctx context.Context, classes []models.Class) ([]models.Class, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, id uuid.UUID, update map[string]any) (models.Class, error)
+	CountUpcomingClasses(ctx context.Context) (int, error)
 }
 
 type IBookings interface {

@@ -127,7 +127,7 @@ h1, h4 {
     display: none;
 }
 
-/* ============ Harmonogram (schedule) ============ */
+/* ============ Schedule ============ */
 
 .schedule-heading {
     padding: 0 0 40px;
@@ -152,7 +152,7 @@ h1, h4 {
     line-height: 1.6;
 }
 
-/* ============ O mnie ============ */
+/* ============ About me ============ */
 
 .about {
     padding: 0 0 120px;
@@ -194,7 +194,7 @@ h1, h4 {
     border: 1px solid oklch(22% 0.01 85 / 0.12);
 }
 
-/* ============ Cennik ============ */
+/* ============ Pricing ============ */
 
 .pricing {
     padding: 0 0 120px;
@@ -299,7 +299,7 @@ h1, h4 {
     border-bottom: 1px solid rgba(224, 224, 224, 0.5);
 }
 
-/* Tabele z informacjami o zajęciach */
+/* Class info tables */
 .class-info table {
     width: 100%;
     border-collapse: collapse;
@@ -323,7 +323,7 @@ h1, h4 {
     font-weight: 300;
 }
 
-/* ============ Formularze / błędy / przyciski ============ */
+/* ============ Forms / errors / buttons ============ */
 
 .book-block {
     position: absolute;

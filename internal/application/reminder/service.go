@@ -11,12 +11,16 @@ import (
 	"main/internal/domain/notifier"
 	"main/internal/domain/repositories"
 	"main/internal/domain/services/passes"
+	"main/internal/infrastructure/sender"
 
 	"github.com/google/uuid"
 )
 
+const lowUpcomingClassesThreshold = 4
+
 type IReminderService interface {
 	RemindBookings(ctx context.Context) error
+	RemindToScheduleMoreClasses(ctx context.Context) error
 }
 
 type service struct {
@@ -24,8 +28,10 @@ type service struct {
 	classesRepo          repositories.IClasses
 	bookingsRepo         repositories.IBookings
 	notifier             notifier.INotifier
+	sender               sender.IEmailSender
 	locationLinkProvider location.ILinkProvider
 	domainAddr           string
+	ownerEmail           string
 }
 
 func New(
@@ -33,16 +39,20 @@ func New(
 	classesRepo repositories.IClasses,
 	bookingsRepo repositories.IBookings,
 	notifier notifier.INotifier,
+	sender sender.IEmailSender,
 	locationLinkProvider location.ILinkProvider,
 	domainAddr string,
+	ownerEmail string,
 ) *service {
 	return &service{
 		unitOfWork:           unitOfWork,
 		classesRepo:          classesRepo,
 		bookingsRepo:         bookingsRepo,
 		notifier:             notifier,
+		sender:               sender,
 		locationLinkProvider: locationLinkProvider,
 		domainAddr:           domainAddr,
+		ownerEmail:           ownerEmail,
 	}
 }
 
@@ -226,4 +236,26 @@ func isBookedSameOrPreviousDayAsClassDay(bookingCreatedAt, classStartTime time.T
 	prevDay := bDate.Add(-24 * time.Hour)
 
 	return aDate.Equal(bDate) || aDate.Equal(prevDay)
+}
+
+func (s *service) RemindToScheduleMoreClasses(ctx context.Context) error {
+	upcomingClassesCount, err := s.classesRepo.CountUpcomingClasses(ctx)
+	if err != nil {
+		return fmt.Errorf("could not count upcoming classes: %w", err)
+	}
+
+	if upcomingClassesCount <= lowUpcomingClassesThreshold {
+		msg := sender.Message{
+			From:    s.ownerEmail,
+			To:      s.ownerEmail,
+			Subject: fmt.Sprintf("Reminder: only %d upcoming classes left", upcomingClassesCount),
+		}
+
+		err := s.sender.Send(msg)
+		if err != nil {
+			return fmt.Errorf("could not send reminder to owner to schedule more classes: %w", err)
+		}
+	}
+
+	return nil
 }

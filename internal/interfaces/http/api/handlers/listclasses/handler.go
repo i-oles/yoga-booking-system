@@ -1,9 +1,11 @@
 package listclasses
 
 import (
+	"fmt"
 	"net/http"
 
 	"main/internal/application/classes"
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -30,7 +32,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&listClassRequest)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -50,7 +52,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	response, err := dto.ToClassDataResponsesFromPresentations(classPresentations)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "ClassListResponse: " + err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, fmt.Errorf("ClassListResponse: %w", err))
 
 		return
 	}

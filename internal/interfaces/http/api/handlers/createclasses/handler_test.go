@@ -12,6 +12,7 @@ import (
 	"main/internal/domain/models"
 	apiErrHandler "main/internal/interfaces/http/api/errs/handler"
 	mockclasses "main/mock/classes"
+	"main/pkg/converter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,6 +26,13 @@ func TestHandler_Handle(t *testing.T) {
 
 	testStartTime := time.Date(2026, 8, 10, 18, 30, 0, 0, time.UTC)
 
+	warsawLocal := func(instant time.Time) string {
+		warsawTime, err := converter.ConvertToWarsawTime(instant)
+		require.NoError(t, err)
+
+		return warsawTime.Format(converter.DateTimeLayout)
+	}
+
 	tests := []struct {
 		name  string
 		body  any
@@ -37,7 +45,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "success - classes creation",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"class_name":   "Morning Yoga",
 					"max_capacity": 10,
@@ -71,14 +79,14 @@ func TestHandler_Handle(t *testing.T) {
 			name: "success - multiple classes creation",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"class_name":   "Morning Yoga",
 					"max_capacity": 10,
 					"location":     "Warsaw",
 				},
 				{
-					"start_time":   testStartTime.Add(24 * time.Hour).Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime.Add(24 * time.Hour)),
 					"class_level":  "advanced",
 					"class_name":   "Evening Yoga",
 					"max_capacity": 8,
@@ -142,7 +150,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "failure - missing class name",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"max_capacity": 10,
 					"location":     "Warsaw",
@@ -163,7 +171,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "failure - max capacity too low",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"class_name":   "Morning Yoga",
 					"max_capacity": 0,
@@ -185,7 +193,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "failure - classes creation error",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"class_name":   "Morning Yoga",
 					"max_capacity": 10,
@@ -209,7 +217,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "failure - classes validation error",
 			body: []map[string]any{
 				{
-					"start_time":   testStartTime.Format(time.RFC3339),
+					"start_time":   warsawLocal(testStartTime),
 					"class_level":  "beginner",
 					"class_name":   "Morning Yoga",
 					"max_capacity": 10,

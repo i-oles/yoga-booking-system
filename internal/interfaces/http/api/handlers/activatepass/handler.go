@@ -1,9 +1,11 @@
 package activatepass
 
 import (
+	"fmt"
 	"net/http"
 
 	"main/internal/application/passes"
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
 
@@ -30,7 +32,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&req)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -49,7 +51,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	passActivationResp, err := dto.ToPassActivationResp(passActivation)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, fmt.Errorf("DTOResponse: %w", err))
 
 		return
 	}

@@ -194,7 +194,7 @@ func (s *service) createBooking(
 	pendingBooking models.PendingBooking,
 	repos repositories.Repositories,
 ) (models.Booking, error) {
-	// I need to check if previous passes don't have some empty slots. Three is enough.
+	// I need to check if previous passes are all full. Three is enough.
 	passes, err := repos.Passes.ListByEmail(ctx, pendingBooking.Email, threeLastPasses)
 	if err != nil {
 		return models.Booking{}, fmt.Errorf("could not get pass: %w", err)

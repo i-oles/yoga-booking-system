@@ -1,12 +1,15 @@
 package createclasses
 
 import (
+	"fmt"
 	"net/http"
 
 	"main/internal/application/classes"
+	domainErrs "main/internal/domain/errs/api"
 	"main/internal/domain/models"
 	"main/internal/interfaces/http/api/dto"
 	apiErrs "main/internal/interfaces/http/api/errs"
+	"main/pkg/converter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -32,7 +35,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	err := ginCtx.ShouldBindJSON(&createClassesRequest)
 	if err != nil {
-		ginCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return
 	}
@@ -40,9 +43,18 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 	classes := make([]models.Class, 0, len(createClassesRequest))
 
 	for _, dtoClass := range createClassesRequest {
+		startTime, err := converter.ParseWarsawTime(
+			converter.DateTimeLayout, dtoClass.StartTimeWarsawLocal,
+		)
+		if err != nil {
+			h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
+
+			return
+		}
+
 		class := models.Class{
 			ID:          uuid.New(),
-			StartTime:   dtoClass.StartTime.UTC(),
+			StartTime:   startTime,
 			ClassLevel:  dtoClass.ClassLevel,
 			ClassName:   dtoClass.ClassName,
 			MaxCapacity: dtoClass.MaxCapacity,
@@ -63,7 +75,7 @@ func (h *handler) Handle(ginCtx *gin.Context) {
 
 	response, err := dto.ToClassesResponse(createdClasses)
 	if err != nil {
-		ginCtx.JSON(http.StatusInternalServerError, gin.H{"error": "DTOResponse: " + err.Error()})
+		h.apiErrorHandler.Handle(ginCtx, fmt.Errorf("DTOResponse: %w", err))
 
 		return
 	}

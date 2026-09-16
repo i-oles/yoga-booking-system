@@ -42,6 +42,21 @@ func (m *MockIClasses) EXPECT() *MockIClassesMockRecorder {
 	return m.recorder
 }
 
+// CountUpcomingClasses mocks base method.
+func (m *MockIClasses) CountUpcomingClasses(ctx context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUpcomingClasses", ctx)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUpcomingClasses indicates an expected call of CountUpcomingClasses.
+func (mr *MockIClassesMockRecorder) CountUpcomingClasses(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUpcomingClasses", reflect.TypeOf((*MockIClasses)(nil).CountUpcomingClasses), ctx)
+}
+
 // Delete mocks base method.
 func (m *MockIClasses) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()

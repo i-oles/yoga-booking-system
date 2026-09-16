@@ -17,6 +17,14 @@ func HandleError(ctx *gin.Context, err error, statusCode int) {
 		slog.String("endpoint", ctx.FullPath()),
 	)
 
-	ctx.Header("HX-Redirect", "/error")
-	ctx.Status(statusCode)
+	if ctx.GetHeader("HX-Request") == "true" {
+		ctx.Header("HX-Redirect", "/error")
+		ctx.Status(statusCode)
+
+		return
+	}
+
+	ctx.HTML(statusCode, "err.tmpl", gin.H{
+		"Error": "error_id: " + ctx.GetString("request_id"),
+	})
 }
