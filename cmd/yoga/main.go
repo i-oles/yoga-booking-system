@@ -38,6 +38,7 @@ import (
 	"main/internal/interfaces/http/api/handlers/listbookingsbyclass"
 	"main/internal/interfaces/http/api/handlers/listclasses"
 	"main/internal/interfaces/http/api/handlers/listcontacts"
+	"main/internal/interfaces/http/api/handlers/listpasses"
 	"main/internal/interfaces/http/api/handlers/listpendingbookings"
 	"main/internal/interfaces/http/api/handlers/updateclass"
 	viewErrs "main/internal/interfaces/http/html/errs"
@@ -171,6 +172,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 	bookingsRepo := sqliteRepo.NewBookingsRepo(database)
 	pendingBookingsRepo := sqliteRepo.NewPendingBookingsRepo(database)
 	contactsRepo := sqliteRepo.NewContactsRepo(database)
+	passesRepo := sqliteRepo.NewPassesRepo(database)
 
 	tokenGenerator := token.NewGenerator()
 
@@ -226,7 +228,7 @@ func buildComponents(cfg *configuration.Configuration) (Components, error) {
 		cfg.DomainAddr,
 	)
 
-	passesService := passes.NewService(unitOfWork, emailNotifier)
+	passesService := passes.NewService(passesRepo, bookingsRepo, unitOfWork, emailNotifier)
 
 	reminder := reminder.New(
 		unitOfWork,
@@ -296,6 +298,9 @@ func setupRouter(
 		// error page
 		api.GET("/error", errorPageHandler.Handle)
 
+		// admin panel
+		router.StaticFile("/admin", "./web/static/admin/index.html")
+
 		// bookings
 		// this endpoint should be POST according to REST, it is GET - confirmation link sent via email
 		api.GET("/bookings", createBookingHandler.Handle)
@@ -331,6 +336,7 @@ func setupRouter(
 	deleteBookingHandler := deletebooking.NewHandler(bookingsService, apiErrorHandler)
 	listPendingBookingsHandler := listpendingbookings.NewHandler(pendingBookingsRepo, apiErrorHandler)
 	activatePassHandler := activatepass.NewHandler(passesService, apiErrorHandler)
+	listPassesHandler := listpasses.NewHandler(passesService, apiErrorHandler)
 	listContactsHandler := listcontacts.NewHandler(contactsRepo, apiErrorHandler)
 	createContactsHandler := createcontacts.NewHandler(contactsRepo, apiErrorHandler)
 
@@ -344,6 +350,7 @@ func setupRouter(
 		api.DELETE("/api/v1/classes/:class_id", authMiddleware, deleteClassHandler.Handle)
 		api.GET("/api/v1/classes/:class_id/bookings", authMiddleware, listBookingsByClassHandler.Handle)
 		api.PUT("/api/v1/passes", authMiddleware, activatePassHandler.Handle)
+		api.GET("/api/v1/passes", authMiddleware, listPassesHandler.Handle)
 		api.GET("/api/v1/contacts", authMiddleware, listContactsHandler.Handle)
 		api.POST("/api/v1/contacts", authMiddleware, createContactsHandler.Handle)
 	}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>otojoga.art — panel administracyjny</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,560;9..144,650&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/web/static/admin/admin.css?v=11">
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <form id="gate-form" class="gate-card">
+    <div class="eyebrow"><span class="dot"></span>otojoga.art · panel</div>
+    <h1>Dostęp administracyjny</h1>
+    <p class="sub">Wklej token (ten sam sekret, którego używasz w Postmanie).</p>
+    <input id="gate-token" type="password" placeholder="token dostępu" autocomplete="current-password" required>
+    <button type="submit" class="btn btn-primary">Wejdź</button>
+    <p id="gate-error" class="gate-error" hidden></p>
+  </form>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="eyebrow"><span class="dot"></span>otojoga.art · panel</div>
+    <button id="logout" class="btn btn-ghost btn-sm" type="button">Wyloguj</button>
+  </header>
+
+  <main class="dashboard">
+
+    <section class="tile tile-classes" id="classes">
+      <div class="tile-head">
+        <h2>Zajęcia</h2>
+        <div class="tile-controls">
+          <label class="toggle">
+            <input id="classes-upcoming" type="checkbox" checked><span>tylko nadchodzące</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-icon btn-primary tile-add" type="button" data-open="class-dialog" title="Nowe zajęcia">+</button>
+      <div class="tile-body">
+        <div class="table-wrap">
+          <table id="classes-table">
+            <thead>
+              <tr>
+                <th>Termin</th>
+                <th>Nazwa</th>
+                <th>Poziom</th>
+                <th>Lokalizacja</th>
+                <th>Miejsca</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" hidden>Brak zajęć do wyświetlenia.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile tile-bookings" id="bookings">
+      <div class="tile-head">
+        <h2>Rezerwacje</h2>
+      </div>
+      <div class="tile-body">
+        <div class="table-wrap">
+          <table id="bookings-table">
+            <thead>
+              <tr>
+                <th>Uczestnik</th>
+                <th>Email</th>
+                <th>Zajęcia</th>
+                <th>Data</th>
+                <th>Karnet</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" hidden>Brak rezerwacji.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile tile-passes" id="passes">
+      <div class="tile-head"><h2>Aktywuj karnet</h2></div>
+      <div class="tile-body">
+        <form id="pass-form" class="form-grid form-grid-1">
+          <label>Email<input type="email" name="email" required></label>
+          <label>Sloty początkowe<input type="number" name="initial_assigned_slots" min="0" value="0" required></label>
+          <label>Sloty łącznie<input type="number" name="total_slots" min="1" value="10" required></label>
+          <button type="submit" class="btn btn-sm btn-accent">Aktywuj</button>
+        </form>
+        <div id="pass-result" class="pass-result" hidden></div>
+      </div>
+    </section>
+
+    <section class="tile tile-passes-list" id="passes-list">
+      <div class="tile-head"><h2>Karnety</h2></div>
+      <div class="tile-body">
+        <div class="table-wrap">
+          <table id="passes-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Sloty</th>
+                <th>Utworzono</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" hidden>Brak karnetów.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="accordions">
+
+    <details class="tile accordion" id="pending">
+      <summary>Niepotwierdzone rezerwacje</summary>
+      <div class="tile-body">
+        <div class="table-wrap">
+          <table id="pending-table">
+            <thead>
+              <tr>
+                <th>Klient</th>
+                <th>Zajęcia</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" hidden>Brak oczekujących.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="tile accordion" id="contacts">
+      <summary>Uczestnicy</summary>
+      <button class="btn btn-icon btn-primary tile-add" type="button" data-open="contact-dialog" title="Nowy kontakt">+</button>
+      <div class="tile-body">
+        <div class="table-wrap">
+          <table id="contacts-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Imię</th>
+                <th>Nazwisko</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" hidden>Brak kontaktów.</p>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</div>
+
+<dialog id="class-dialog" class="dialog">
+  <h2>Nowe zajęcia</h2>
+  <form id="class-create-form" class="form-grid">
+    <label>Data i godzina<input type="datetime-local" name="start_time" required></label>
+    <label>Nazwa<input type="text" name="class_name" minlength="3" maxlength="60" required></label>
+    <label>Poziom<input type="text" name="class_level" minlength="3" maxlength="40" required></label>
+    <label>Limit miejsc<input type="number" name="max_capacity" min="1" value="10" required></label>
+    <label>Lokalizacja
+      <select name="location" required>
+        <option value="ożarowska 75/36">ożarowska 75/36</option>
+        <option value="ogród krasińskich">ogród krasińskich</option>
+        <option value="ogród saski">ogród saski</option>
+        <option value="park moczydło">park moczydło</option>
+      </select>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close>Anuluj</button>
+      <button type="submit" class="btn btn-primary">Utwórz</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="contact-dialog" class="dialog">
+  <h2>Nowy kontakt</h2>
+  <form id="contact-create-form" class="form-grid">
+    <label>Email<input type="email" name="email" required></label>
+    <label>Imię<input type="text" name="first_name" required></label>
+    <label>Nazwisko<input type="text" name="last_name" required></label>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close>Anuluj</button>
+      <button type="submit" class="btn btn-primary">Dodaj</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast-root" class="toast-root"></div>
+
+<script src="/web/static/admin/admin.js?v=11"></script>
+</body>
+</html>

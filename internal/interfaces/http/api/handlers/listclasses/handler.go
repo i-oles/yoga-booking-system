@@ -1,7 +1,9 @@
 package listclasses
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"main/internal/application/classes"
@@ -30,8 +32,9 @@ func NewHandler(
 func (h *handler) Handle(ginCtx *gin.Context) {
 	var listClassRequest dto.ListClassesRequest
 
+	// browsers cannot send a body on GET, so a missing body falls back to defaults
 	err := ginCtx.ShouldBindJSON(&listClassRequest)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		h.apiErrorHandler.Handle(ginCtx, domainErrs.ErrValidation(err))
 
 		return

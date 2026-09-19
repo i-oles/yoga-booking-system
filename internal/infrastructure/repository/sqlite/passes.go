@@ -20,6 +20,24 @@ func NewPassesRepo(db *gorm.DB) *passesRepo {
 	}
 }
 
+func (r *passesRepo) List(ctx context.Context) ([]models.Pass, error) {
+	var SQLPasses []db.SQLPass
+
+	if err := r.db.WithContext(ctx).
+		Order("created_at DESC").
+		Find(&SQLPasses).Error; err != nil {
+		return nil, fmt.Errorf("could not list passes: %w", err)
+	}
+
+	result := make([]models.Pass, len(SQLPasses))
+
+	for i, SQLPass := range SQLPasses {
+		result[i] = SQLPass.ToDomain()
+	}
+
+	return result, nil
+}
+
 func (r *passesRepo) ListByEmail(
 	ctx context.Context, email string, limit int,
 ) ([]models.Pass, error) {

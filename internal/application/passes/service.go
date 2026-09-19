@@ -13,18 +13,51 @@ import (
 )
 
 type service struct {
-	unitOfWork repositories.IUnitOfWork
-	notifier   notifier.INotifier
+	passesRepo   repositories.IPasses
+	bookingsRepo repositories.IBookings
+	unitOfWork   repositories.IUnitOfWork
+	notifier     notifier.INotifier
 }
 
 func NewService(
+	passesRepo repositories.IPasses,
+	bookingsRepo repositories.IBookings,
 	unitOfWork repositories.IUnitOfWork,
 	notifier notifier.INotifier,
 ) *service {
 	return &service{
-		unitOfWork: unitOfWork,
-		notifier:   notifier,
+		passesRepo:   passesRepo,
+		bookingsRepo: bookingsRepo,
+		unitOfWork:   unitOfWork,
+		notifier:     notifier,
 	}
+}
+
+func (s *service) ListPasses(ctx context.Context) ([]PassPresentation, error) {
+	allPasses, err := s.passesRepo.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not list passes: %w", err)
+	}
+
+	presentations := make([]PassPresentation, 0, len(allPasses))
+
+	for _, pass := range allPasses {
+		usedSlots, err := s.bookingsRepo.CountForPassID(ctx, pass.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not count bookings for pass %d: %w", pass.ID, err)
+		}
+
+		presentations = append(presentations, PassPresentation{
+			ID:         pass.ID,
+			Email:      pass.Email,
+			TotalSlots: pass.TotalSlots,
+			UsedSlots:  usedSlots,
+			CreatedAt:  pass.CreatedAt,
+			UpdatedAt:  pass.UpdatedAt,
+		})
+	}
+
+	return presentations, nil
 }
 
 func (s *service) ActivatePass(
