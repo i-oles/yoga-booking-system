@@ -142,6 +142,33 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
+			name: "failure - confirmation notification failed, booking still saved",
+			form: url.Values{
+				"email":      {"anna@example.com"},
+				"class_id":   {testClassID.String()},
+				"first_name": {"Anna"},
+				"last_name":  {"Kowalska"},
+			},
+			mocks: func(
+				service *mockpendingbookings.MockIService,
+			) {
+				service.EXPECT().
+					CreatePendingBooking(gomock.Any(), models.PendingBookingParams{
+						ClassID:   testClassID,
+						FirstName: "Anna",
+						LastName:  "Kowalska",
+						Email:     "anna@example.com",
+					}).
+					Return(domainErrs.ErrConfirmationLinkNotification(testClassID, assert.AnError))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Twoja rezerwacja została zapisana")
+			},
+		},
+		{
 			name: "failure - booking already exists",
 			form: url.Values{
 				"email":      {"anna@example.com"},

@@ -107,6 +107,26 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
+			name: "failure - confirmation notification failed, booking still saved",
+			url:  "/bookings?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				service.EXPECT().
+					CreateBooking(gomock.Any(), testToken).
+					Return(
+						bookings.BookingCreation{},
+						domainErrs.ErrBookingConfirmationNotification(testClass.ID, assert.AnError),
+					)
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Twoja rezerwacja została potwierdzona")
+			},
+		},
+		{
 			name: "failure - someone booked class faster",
 			url:  "/bookings?token=" + testToken,
 			mocks: func(

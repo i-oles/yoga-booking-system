@@ -115,3 +115,48 @@ func ErrInvalidCancellationLink(err error) *BusinessError {
 		Err:     err,
 	}
 }
+
+type NotificationError struct {
+	ClassID *uuid.UUID
+	Message string
+	Err     error
+}
+
+func (e *NotificationError) Error() string {
+	if e.Err != nil {
+		return e.Err.Error()
+	}
+
+	return e.Message
+}
+
+func (e *NotificationError) Unwrap() error {
+	return e.Err
+}
+
+func ErrConfirmationLinkNotification(classID uuid.UUID, err error) *NotificationError {
+	return &NotificationError{
+		ClassID: &classID,
+		Message: "Twoja rezerwacja została zapisana, ale nie udało się wysłać emaila z linkiem " +
+			"potwierdzającym. Spróbuj ponownie albo skontaktuj się ze mną, jeśli problem się powtórzy.",
+		Err: err,
+	}
+}
+
+func ErrBookingConfirmationNotification(classID uuid.UUID, err error) *NotificationError {
+	return &NotificationError{
+		ClassID: &classID,
+		Message: "Twoja rezerwacja została potwierdzona, ale nie udało się wysłać emaila z " +
+			"potwierdzeniem. Skontaktuj się ze mną, jeśli chcesz mieć pewność, że wszystko się zgadza.",
+		Err: err,
+	}
+}
+
+func ErrBookingCancellationNotification(classID uuid.UUID, err error) *NotificationError {
+	return &NotificationError{
+		ClassID: &classID,
+		Message: "Twoja rezerwacja została odwołana, ale nie udało się wysłać emaila z potwierdzeniem " +
+			"odwołania. Skontaktuj się ze mną, jeśli chcesz mieć pewność, że wszystko się zgadza.",
+		Err: err,
+	}
+}
