@@ -568,6 +568,8 @@ func TestService_ActivatePass(t *testing.T) {
 			}
 
 			service := NewService(
+				passesRepo,
+				bookingsRepo,
 				unitOfWork,
 				notifier,
 			)
@@ -598,6 +600,116 @@ func TestService_ActivatePass(t *testing.T) {
 			if tt.assert != nil {
 				tt.assert(t, data, got)
 			}
+		})
+	}
+}
+
+func TestService_ListPasses(t *testing.T) {
+	t.Parallel()
+
+	passA := newPass()
+	passB := newPass()
+	passB.ID = 2
+	passB.Email = "anna@example.com"
+
+	tests := []struct {
+		name  string
+		mocks func(
+			passesRepo *mock.MockIPasses,
+			bookingsRepo *mock.MockIBookings,
+		)
+		want          []PassPresentation
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name: "List one pass",
+			mocks: func(
+				passesRepo *mock.MockIPasses,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				passesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Pass{passA}, nil)
+
+				bookingsRepo.EXPECT().
+					CountForPassID(gomock.Any(), passA.ID).
+					Return(3, nil)
+			},
+			want: []PassPresentation{
+				{
+					ID:         passA.ID,
+					Email:      passA.Email,
+					TotalSlots: passA.TotalSlots,
+					UsedSlots:  3,
+					CreatedAt:  passA.CreatedAt,
+					UpdatedAt:  passA.UpdatedAt,
+				},
+			},
+		},
+		{
+			name: "List passes error",
+			mocks: func(
+				passesRepo *mock.MockIPasses,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				passesRepo.EXPECT().
+					List(gomock.Any()).
+					Return(nil, assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not list passes",
+		},
+		{
+			name: "Count bookings for pass error",
+			mocks: func(
+				passesRepo *mock.MockIPasses,
+				bookingsRepo *mock.MockIBookings,
+			) {
+				passesRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]models.Pass{passA, passB}, nil)
+
+				bookingsRepo.EXPECT().
+					CountForPassID(gomock.Any(), passA.ID).
+					Return(0, assert.AnError)
+			},
+			wantError:     true,
+			errorContains: "could not count bookings for pass",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			unitOfWork := mock.NewMockIUnitOfWork(ctrl)
+			passesRepo := mock.NewMockIPasses(ctrl)
+			bookingsRepo := mock.NewMockIBookings(ctrl)
+			notifier := mock.NewMockINotifier(ctrl)
+
+			tt.mocks(passesRepo, bookingsRepo)
+
+			service := NewService(
+				passesRepo,
+				bookingsRepo,
+				unitOfWork,
+				notifier,
+			)
+
+			got, err := service.ListPasses(context.Background())
+
+			if tt.wantError {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.errorContains)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

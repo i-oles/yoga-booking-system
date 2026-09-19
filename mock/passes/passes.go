@@ -55,3 +55,18 @@ func (mr *MockIServiceMockRecorder) ActivatePass(ctx, email, initialAssignedSlot
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivatePass", reflect.TypeOf((*MockIService)(nil).ActivatePass), ctx, email, initialAssignedSlots, totalPassSlots)
 }
+
+// ListPasses mocks base method.
+func (m *MockIService) ListPasses(ctx context.Context) ([]passes.PassPresentation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPasses", ctx)
+	ret0, _ := ret[0].([]passes.PassPresentation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPasses indicates an expected call of ListPasses.
+func (mr *MockIServiceMockRecorder) ListPasses(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPasses", reflect.TypeOf((*MockIService)(nil).ListPasses), ctx)
+}

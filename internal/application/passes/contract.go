@@ -10,4 +10,5 @@ type IService interface {
 		email string,
 		initialAssignedSlots, totalPassSlots int,
 	) (PassActivation, error)
+	ListPasses(ctx context.Context) ([]PassPresentation, error)
 }
