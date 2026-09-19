@@ -95,8 +95,7 @@ func (s *service) CreateBooking(ctx context.Context, token string) (BookingCreat
 
 	err = s.sendConfirmation(booking, notifierParams, token)
 	if err != nil {
-		return BookingCreation{},
-			fmt.Errorf("could not send confirmation email %s: %w", booking.Email, err)
+		return BookingCreation{}, err
 	}
 
 	return buildBookingCreation(booking, locationLink), nil
@@ -257,7 +256,10 @@ func (s *service) sendConfirmation(
 
 	err := s.notifier.NotifyBookingConfirmation(notifierParams, cancellationLink)
 	if err != nil {
-		return fmt.Errorf("could not notify booking confirmation: %w", err)
+		return viewErrors.ErrBookingConfirmationNotification(
+			booking.ClassID,
+			fmt.Errorf("could not notify booking confirmation: %w", err),
+		)
 	}
 
 	return nil
@@ -329,7 +331,10 @@ func (s *service) CancelBooking(ctx context.Context, bookingID uuid.UUID, token 
 
 	err = s.notifier.NotifyBookingCancellation(notifierParams)
 	if err != nil {
-		return fmt.Errorf("could not notify booking cancellation with %+v: %w", notifierParams, err)
+		return viewErrors.ErrBookingCancellationNotification(
+			booking.ClassID,
+			fmt.Errorf("could not notify booking cancellation with %+v: %w", notifierParams, err),
+		)
 	}
 
 	return nil

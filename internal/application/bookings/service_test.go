@@ -759,7 +759,7 @@ func TestService_CreateBooking(t *testing.T) {
 			},
 
 			wantError:     true,
-			errorContains: "could not send confirmation email",
+			errorContains: "could not notify booking confirmation",
 		},
 		{
 			name:  "Success booking creation - contact already exists, without pass",

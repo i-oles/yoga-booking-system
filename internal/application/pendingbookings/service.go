@@ -91,14 +91,25 @@ func (s *service) CreatePendingBooking(
 		return fmt.Errorf("create pending booking transaction failed: %w", err)
 	}
 
-	err = s.notifier.NotifyConfirmationLink(
+	return s.notifyConfirmationLink(pendingBookingParams, confirmationToken, class.StartTime)
+}
+
+func (s *service) notifyConfirmationLink(
+	pendingBookingParams models.PendingBookingParams,
+	confirmationToken string,
+	classStartTime time.Time,
+) error {
+	err := s.notifier.NotifyConfirmationLink(
 		pendingBookingParams.Email,
 		pendingBookingParams.FirstName,
 		fmt.Sprintf("%s/bookings?token=%s", s.domainAddr, confirmationToken),
-		class.StartTime,
+		classStartTime,
 	)
 	if err != nil {
-		return fmt.Errorf("could not notify confirmation link: %w", err)
+		return viewErrors.ErrConfirmationLinkNotification(
+			pendingBookingParams.ClassID,
+			fmt.Errorf("could not notify confirmation link: %w", err),
+		)
 	}
 
 	return nil

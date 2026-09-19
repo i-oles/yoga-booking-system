@@ -174,6 +174,19 @@ func TestErrorHandler_Handle(t *testing.T) {
 			},
 		},
 		{
+			name: "notification error renders custom message at 500",
+			err: &domainErrs.NotificationError{
+				ClassID: uuidPtr(uuid.New()),
+				Message: "notification failed message",
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "notification failed message")
+			},
+		},
+		{
 			name: "non-business error renders err.tmpl",
 			err:  assert.AnError,
 			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {

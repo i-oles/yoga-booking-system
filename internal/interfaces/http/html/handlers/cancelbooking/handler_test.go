@@ -107,6 +107,23 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
+			name: "failure - cancellation notification failed, booking still cancelled",
+			url:  "/bookings/" + testBookingID.String() + "?token=" + testToken,
+			mocks: func(
+				service *mockbookings.MockIService,
+			) {
+				service.EXPECT().
+					CancelBooking(gomock.Any(), testBookingID, testToken).
+					Return(domainErrs.ErrBookingCancellationNotification(uuid.New(), assert.AnError))
+			},
+			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Twoja rezerwacja została odwołana")
+			},
+		},
+		{
 			name: "failure - booking not found",
 			url:  "/bookings/" + testBookingID.String() + "?token=" + testToken,
 			mocks: func(
