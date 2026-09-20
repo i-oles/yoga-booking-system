@@ -93,7 +93,6 @@ a{color:var(--accent2);}
   gap:12px;
 }
 .gate-card .eyebrow{text-align:center; margin-bottom:12px;}
-.gate-card .sub{color:var(--text-dim); font-size:14px; margin:0 0 4px;}
 .gate-error{color:var(--crit); font-size:13.5px; margin:0;}
 
 /* --- layout: the dashboard fills the first screen, collapsed accordions can grow the page --- */
@@ -211,16 +210,6 @@ details.accordion .tile-body{
   white-space:nowrap;
 }
 .toggle input[type="checkbox"]{width:auto; margin:0; flex:none;}
-.search{
-  font-family:"IBM Plex Sans", sans-serif;
-  font-size:13.5px;
-  padding:8px 12px;
-  border-radius:8px;
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--text);
-  min-width:240px;
-}
 input, select{
   font-family:"IBM Plex Sans", sans-serif;
   font-size:14px;
@@ -231,7 +220,7 @@ input, select{
   padding:9px 11px;
   width:100%;
 }
-input:focus, select:focus, .search:focus{
+input:focus, select:focus{
   outline:2px solid var(--accent2-soft);
   border-color:var(--accent2);
 }
@@ -254,7 +243,6 @@ label{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(
 .btn-danger{background:var(--crit-soft); border-color:color-mix(in srgb, var(--crit) 40%, var(--border)); color:var(--crit);}
 .btn-accent{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); color:var(--accent);}
 .btn-primary:hover, .btn-danger:hover, .btn-accent:hover{filter:brightness(0.96);}
-.btn-ghost{background:transparent;}
 #logout:hover{color:var(--accent2); border-color:var(--accent2); background:var(--accent2-soft);}
 .btn-sm{padding:5px 9px; font-size:11.5px;}
 .btn-icon{
@@ -264,13 +252,7 @@ label{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(
 }
 .btn-row{display:flex; gap:8px;}
 
-/* --- cards / forms --- */
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:10px;
-  box-shadow:var(--shadow);
-}
+/* --- forms --- */
 .form-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
@@ -389,5 +371,4 @@ tr:last-child td{border-bottom:none;}
   .tile{max-height:70vh;}
   .accordions{grid-template-columns:1fr;}
   #pending.accordion, #contacts.accordion{grid-column:1;}
-  .search{min-width:0; width:100%;}
 }

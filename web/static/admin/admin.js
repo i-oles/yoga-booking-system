@@ -189,7 +189,7 @@
   }
 
   function renderClassRow(cls) {
-    const row = el("tr", { "data-id": cls.id });
+    const row = el("tr");
 
     const bookedCount = cls.max_capacity - cls.current_capacity;
 
@@ -213,7 +213,6 @@
 
   function startEditClass(cls, row) {
     clear(row);
-    row.dataset.id = cls.id;
 
     const startInput = el("input", { type: "datetime-local", value: toDateTimeLocalValue(parseClassDate(cls)) });
     const nameInput = el("input", { type: "text", value: cls.class_name });
@@ -365,7 +364,7 @@
   }
 
   function renderBookingRow(booking) {
-    const row = el("tr", { "data-id": booking.id });
+    const row = el("tr");
 
     row.append(
       td(`${booking.first_name} ${booking.last_name}`),
