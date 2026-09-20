@@ -69,10 +69,23 @@
     <section class="tile tile-bookings" id="bookings">
       <div class="tile-head">
         <h2>Rezerwacje</h2>
+        <div class="tile-controls">
+          <label class="toggle">
+            <input id="bookings-upcoming" type="checkbox" checked><span>tylko nadchodzące</span>
+          </label>
+        </div>
       </div>
       <div class="tile-body">
         <div class="table-wrap">
           <table id="bookings-table">
+            <colgroup>
+              <col style="width:18%">
+              <col style="width:24%">
+              <col style="width:20%">
+              <col style="width:18%">
+              <col style="width:10%">
+              <col style="width:10%">
+            </colgroup>
             <thead>
               <tr>
                 <th>Uczestnik</th>
