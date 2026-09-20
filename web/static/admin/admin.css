@@ -255,6 +255,7 @@ label{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(
 .btn-accent{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); color:var(--accent);}
 .btn-primary:hover, .btn-danger:hover, .btn-accent:hover{filter:brightness(0.96);}
 .btn-ghost{background:transparent;}
+#logout:hover{color:var(--accent2); border-color:var(--accent2); background:var(--accent2-soft);}
 .btn-sm{padding:5px 9px; font-size:11.5px;}
 .btn-icon{
   width:26px; height:26px; padding:0;

@@ -426,18 +426,10 @@
     for (const pending of state.pendingBookings) {
       const row = el("tr");
       row.append(
-        td(el("span", {}, [
-          `${pending.first_name} ${pending.last_name}`,
-          el("br"),
-          el("span", { class: "dim" }, pending.email),
-        ])),
-        td(pending.class
-          ? el("span", {}, [
-            pending.class.ClassName,
-            el("br"),
-            el("span", { class: "dim" }, new Date(pending.class.StartTime).toLocaleString("pl-PL")),
-          ])
-          : ""),
+        td(`${pending.first_name} ${pending.last_name}`),
+        td(pending.email),
+        td(pending.class ? pending.class.ClassName : ""),
+        td(pending.class ? new Date(pending.class.StartTime).toLocaleString("pl-PL") : ""),
       );
       tbody.append(row);
     }
@@ -527,7 +519,7 @@
 
     for (const contact of state.contacts) {
       const row = el("tr");
-      row.append(td(contact.email), td(contact.first_name), td(contact.last_name));
+      row.append(td(String(contact.id)), td(contact.email), td(contact.first_name), td(contact.last_name));
       tbody.append(row);
     }
   }

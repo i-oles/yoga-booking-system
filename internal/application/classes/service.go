@@ -308,10 +308,8 @@ func (s *service) UpdateClass(
 func (s *service) ensureClassUpdate(
 	ctx context.Context, classID uuid.UUID, update UpdateClassCommand, hasBookings bool,
 ) error {
-	if (update.Location != nil || update.StartTime != nil) && hasBookings && update.Message == nil {
-		return api.ErrValidation(
-			errors.New("message cannot be empty when updating loc or startTime and when bookings extsist"),
-		)
+	if err := validateMessageContentForUpdate(update, hasBookings); err != nil {
+		return err
 	}
 
 	existingClasses, err := s.classesRepo.List(ctx)
@@ -337,6 +335,16 @@ func (s *service) ensureClassUpdate(
 		}
 
 		return fmt.Errorf("could not get class for class_id %v: %w", classID, err)
+	}
+
+	return nil
+}
+
+func validateMessageContentForUpdate(update UpdateClassCommand, hasBookings bool) error {
+	if (update.Location != nil || update.StartTime != nil) && hasBookings && update.Message == nil {
+		return api.ErrValidation(
+			errors.New("message cannot be empty when updating location or class startTime with bookings"),
+		)
 	}
 
 	return nil
