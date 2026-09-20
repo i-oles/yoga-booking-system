@@ -310,7 +310,7 @@ func (s *service) ensureClassUpdate(
 ) error {
 	if (update.Location != nil || update.StartTime != nil) && hasBookings && update.Message == nil {
 		return api.ErrValidation(
-			errors.New("message cannot be empty when updating location or startTime for a class with existing bookings"),
+			errors.New("message cannot be empty when updating loc or startTime and when bookings extsist"),
 		)
 	}
 
