@@ -6,6 +6,7 @@
   --border:#ddd4bf;
   --text:#221f19;
   --text-dim:#605a4c;
+  --text-dim-2:#8b8473;
   --accent:#a85a17;
   --accent-soft:#a85a1714;
   --accent2:#1a7684;
@@ -27,6 +28,7 @@
     --border:#31333d;
     --text:#eae7de;
     --text-dim:#9a9ea6;
+    --text-dim-2:#c3c6cc;
     --accent:#e0a34e;
     --accent-soft:#e0a34e1f;
     --accent2:#4fb6c4;
@@ -61,16 +63,13 @@ h1,h2{
 a{color:var(--accent2);}
 
 .eyebrow{
-  font-family:"IBM Plex Mono", monospace;
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
+  font-family:"Fraunces", Georgia, serif;
+  font-size:18px;
+  font-weight:650;
+  letter-spacing:-0.01em;
+  text-transform:lowercase;
   color:var(--accent);
-  display:flex;
-  align-items:center;
-  gap:9px;
 }
-.eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); flex:none;}
 
 /* --- gate / login --- */
 .gate{
@@ -80,9 +79,10 @@ a{color:var(--accent2);}
   justify-content:center;
   padding:24px;
 }
+.gate[hidden]{display:none;}
 .gate-card{
   width:100%;
-  max-width:380px;
+  max-width:260px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:12px;
@@ -92,13 +92,14 @@ a{color:var(--accent2);}
   flex-direction:column;
   gap:12px;
 }
-.gate-card h1{font-size:22px; margin-top:10px;}
+.gate-card .eyebrow{text-align:center; margin-bottom:12px;}
 .gate-card .sub{color:var(--text-dim); font-size:14px; margin:0 0 4px;}
 .gate-error{color:var(--crit); font-size:13.5px; margin:0;}
 
 /* --- layout: the dashboard fills the first screen, collapsed accordions can grow the page --- */
 html, body{min-height:100%;}
 .app{display:flex; flex-direction:column; min-height:100vh;}
+.app[hidden]{display:none;}
 
 .topbar{
   flex:none;
@@ -127,6 +128,7 @@ html, body{min-height:100%;}
   flex:none;
   display:grid;
   grid-template-columns:repeat(5, 1fr);
+  align-items:start;
   gap:14px;
   padding:0 20px 20px;
 }
@@ -195,11 +197,11 @@ details.accordion .tile-body{
   flex:1;
   min-height:0;
   overflow:hidden;
-  padding:36px 16px 14px;
+  padding:42px 16px 14px;
   display:flex;
   flex-direction:column;
 }
-.tile-passes .tile-body{overflow:hidden; display:flex; flex-direction:column; justify-content:flex-start; padding-top:30px;}
+.tile-passes .tile-body{overflow:hidden; display:flex; flex-direction:column; justify-content:flex-start; padding-top:36px;}
 
 /* --- form controls --- */
 .toggle{
@@ -238,25 +240,26 @@ label{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(
 .btn{
   font-family:"IBM Plex Sans", sans-serif;
   font-size:13px;
+  font-weight:600;
   text-transform:lowercase;
   border-radius:7px;
   border:1px solid var(--border);
-  background:var(--surface);
+  background:transparent;
   color:var(--text);
   padding:8px 14px;
   cursor:pointer;
 }
-.btn:hover{border-color:var(--text-dim);}
-.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff;}
-.btn-primary:hover{filter:brightness(1.05); border-color:var(--accent);}
+.btn:hover{border-color:var(--text-dim); background:color-mix(in srgb, var(--text) 6%, transparent);}
+.btn-primary{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); color:var(--accent);}
 .btn-danger{background:var(--crit-soft); border-color:color-mix(in srgb, var(--crit) 40%, var(--border)); color:var(--crit);}
 .btn-accent{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 40%, var(--border)); color:var(--accent);}
+.btn-primary:hover, .btn-danger:hover, .btn-accent:hover{filter:brightness(0.96);}
 .btn-ghost{background:transparent;}
 .btn-sm{padding:5px 9px; font-size:11.5px;}
 .btn-icon{
-  width:19px; height:19px; padding:0;
+  width:26px; height:26px; padding:0;
   display:inline-flex; align-items:center; justify-content:center;
-  font-size:12px; line-height:1;
+  font-size:15px; line-height:1;
 }
 .btn-row{display:flex; gap:8px;}
 
@@ -288,24 +291,39 @@ label{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(
   background:var(--surface);
   color:var(--text);
   padding:22px 24px 24px;
-  width:min(420px, 90vw);
+  width:min(320px, 90vw);
 }
 .dialog::backdrop{background:rgba(20,17,10,.45);}
-.dialog h2{font-size:18px; margin-bottom:4px;}
-.dialog .form-grid{margin-top:16px;}
-.dialog-actions{grid-column:1 / -1; display:flex; justify-content:flex-end; gap:8px; margin-top:4px;}
+.dialog h2{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:10.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--text-dim);
+  margin-bottom:4px;
+}
+.dialog .form-grid{margin-top:16px; grid-template-columns:1fr;}
+.dialog-actions{grid-column:1 / -1; display:flex; justify-content:flex-end; gap:8px; margin-top:24px;}
+
+.confirm-dialog p{white-space:pre-line; margin:0 0 14px; font-size:14px;}
+.confirm-dialog input{margin-bottom:14px;}
 
 /* --- tables --- */
 .table-wrap{flex:1; min-height:0; overflow:auto; border:1px solid var(--border); border-radius:10px; background:var(--surface);}
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
+#classes-table{table-layout:fixed;}
+#classes-table td{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#classes-table td.edit-term-cell{overflow:visible;}
 th, td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top;}
+td{color:var(--text-dim-2);}
 th{
   font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:600;
   color:var(--text-dim); background:var(--surface-2);
   position:sticky; top:0;
 }
 tr:last-child td{border-bottom:none;}
-.dim{color:var(--text-dim); font-size:12px;}
+.dim{color:var(--text-dim-2);}
 .empty{padding:22px; text-align:center; color:var(--text-dim); font-size:13.5px;}
 
 .badge{
@@ -335,8 +353,10 @@ tr:last-child td{border-bottom:none;}
 }
 
 /* --- edit mode --- */
-.edit-actions{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
-.edit-actions input[type="text"]{width:220px;}
+.cell-stack{display:flex; flex-direction:column; gap:10px;}
+.msg-input-wide{position:relative; z-index:5;}
+#classes-table td input, #classes-table td select{padding:5px 7px; font-size:12.5px;}
+.cap-input{width:46px;}
 
 /* --- toasts --- */
 .toast-root{

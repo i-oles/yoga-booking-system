@@ -60,12 +60,14 @@ type PassPresentationDTO struct {
 func ToPassPresentationDTO(pass passes.PassPresentation) (PassPresentationDTO, error) {
 	cratedAtWarsawTime, err := converter.ConvertToWarsawTime(pass.CreatedAt)
 	if err != nil {
-		return PassPresentationDTO{}, fmt.Errorf("error while converting createdAt to warsaw time: %w", err)
+		return PassPresentationDTO{},
+			fmt.Errorf("error while converting createdAt to warsaw time: %w", err)
 	}
 
 	updatedAtWarsawTime, err := converter.ConvertToWarsawTime(pass.UpdatedAt)
 	if err != nil {
-		return PassPresentationDTO{}, fmt.Errorf("error while converting createdAt to warsaw time: %w", err)
+		return PassPresentationDTO{},
+			fmt.Errorf("error while converting createdAt to warsaw time: %w", err)
 	}
 
 	return PassPresentationDTO{
@@ -78,7 +80,9 @@ func ToPassPresentationDTO(pass passes.PassPresentation) (PassPresentationDTO, e
 	}, nil
 }
 
-func ToPassPresentationsDTO(passPresentations []passes.PassPresentation) ([]PassPresentationDTO, error) {
+func ToPassPresentationsDTO(
+	passPresentations []passes.PassPresentation,
+) ([]PassPresentationDTO, error) {
 	result := make([]PassPresentationDTO, len(passPresentations))
 
 	for i, pass := range passPresentations {

@@ -7,16 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,560;9..144,650&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/web/static/admin/admin.css?v=11">
+<link rel="stylesheet" href="/web/static/admin/admin.css?v=45">
 </head>
 <body>
 
 <div id="gate" class="gate">
   <form id="gate-form" class="gate-card">
-    <div class="eyebrow"><span class="dot"></span>otojoga.art · panel</div>
-    <h1>Dostęp administracyjny</h1>
-    <p class="sub">Wklej token (ten sam sekret, którego używasz w Postmanie).</p>
-    <input id="gate-token" type="password" placeholder="token dostępu" autocomplete="current-password" required>
+    <div class="eyebrow">otojoga.art</div>
+    <input id="gate-token" type="password" placeholder="hasło" autocomplete="current-password" required>
     <button type="submit" class="btn btn-primary">Wejdź</button>
     <p id="gate-error" class="gate-error" hidden></p>
   </form>
@@ -24,7 +22,7 @@
 
 <div id="app" class="app" hidden>
   <header class="topbar">
-    <div class="eyebrow"><span class="dot"></span>otojoga.art · panel</div>
+    <div class="eyebrow">otojoga.art</div>
     <button id="logout" class="btn btn-ghost btn-sm" type="button">Wyloguj</button>
   </header>
 
@@ -39,10 +37,18 @@
           </label>
         </div>
       </div>
-      <button class="btn btn-icon btn-primary tile-add" type="button" data-open="class-dialog" title="Nowe zajęcia">+</button>
+      <button class="btn btn-icon btn-accent tile-add" type="button" data-open="class-dialog" title="Stwórz zajęcia">+</button>
       <div class="tile-body">
         <div class="table-wrap">
           <table id="classes-table">
+            <colgroup>
+              <col style="width:22%">
+              <col style="width:20%">
+              <col style="width:12%">
+              <col style="width:17%">
+              <col style="width:9%">
+              <col style="width:20%">
+            </colgroup>
             <thead>
               <tr>
                 <th>Termin</th>
@@ -90,7 +96,7 @@
         <form id="pass-form" class="form-grid form-grid-1">
           <label>Email<input type="email" name="email" required></label>
           <label>Sloty początkowe<input type="number" name="initial_assigned_slots" min="0" value="0" required></label>
-          <label>Sloty łącznie<input type="number" name="total_slots" min="1" value="10" required></label>
+          <label>Sloty łącznie<input type="number" name="total_slots" min="1" value="5" required></label>
           <button type="submit" class="btn btn-sm btn-accent">Aktywuj</button>
         </form>
         <div id="pass-result" class="pass-result" hidden></div>
@@ -104,6 +110,7 @@
           <table id="passes-table">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Email</th>
                 <th>Sloty</th>
                 <th>Utworzono</th>
@@ -140,7 +147,7 @@
 
     <details class="tile accordion" id="contacts">
       <summary>Uczestnicy</summary>
-      <button class="btn btn-icon btn-primary tile-add" type="button" data-open="contact-dialog" title="Nowy kontakt">+</button>
+      <button class="btn btn-icon btn-accent tile-add" type="button" data-open="contact-dialog" title="Dodaj uczestnika">+</button>
       <div class="tile-body">
         <div class="table-wrap">
           <table id="contacts-table">
@@ -162,7 +169,7 @@
 </div>
 
 <dialog id="class-dialog" class="dialog">
-  <h2>Nowe zajęcia</h2>
+  <h2>Stwórz zajęcia</h2>
   <form id="class-create-form" class="form-grid">
     <label>Data i godzina<input type="datetime-local" name="start_time" required></label>
     <label>Nazwa<input type="text" name="class_name" minlength="3" maxlength="60" required></label>
@@ -177,27 +184,27 @@
       </select>
     </label>
     <div class="dialog-actions">
-      <button type="button" class="btn" data-close>Anuluj</button>
-      <button type="submit" class="btn btn-primary">Utwórz</button>
+      <button type="button" class="btn btn-sm" data-close>Anuluj</button>
+      <button type="submit" class="btn btn-sm btn-primary">Utwórz</button>
     </div>
   </form>
 </dialog>
 
 <dialog id="contact-dialog" class="dialog">
-  <h2>Nowy kontakt</h2>
+  <h2>Dodaj uczestnika</h2>
   <form id="contact-create-form" class="form-grid">
     <label>Email<input type="email" name="email" required></label>
     <label>Imię<input type="text" name="first_name" required></label>
     <label>Nazwisko<input type="text" name="last_name" required></label>
     <div class="dialog-actions">
-      <button type="button" class="btn" data-close>Anuluj</button>
-      <button type="submit" class="btn btn-primary">Dodaj</button>
+      <button type="button" class="btn btn-sm" data-close>Anuluj</button>
+      <button type="submit" class="btn btn-sm btn-primary">Dodaj</button>
     </div>
   </form>
 </dialog>
 
 <div id="toast-root" class="toast-root"></div>
 
-<script src="/web/static/admin/admin.js?v=11"></script>
+<script src="/web/static/admin/admin.js?v=45"></script>
 </body>
 </html>

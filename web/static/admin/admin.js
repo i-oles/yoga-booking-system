@@ -47,6 +47,50 @@
     setTimeout(() => node.remove(), 4500);
   }
 
+  function showModal({
+    message,
+    withInput = false,
+    inputValue = "",
+    confirmLabel = "ok",
+    confirmClass = "btn-primary",
+    cancelLabel = null,
+  }) {
+    return new Promise((resolve) => {
+      const input = withInput ? el("input", { type: "text", value: inputValue }) : null;
+
+      let resolved = false;
+      const finish = (value) => {
+        resolved = true;
+        dialog.close();
+        resolve(value);
+      };
+
+      const actions = el("div", { class: "dialog-actions" }, [
+        cancelLabel ? el("button", { class: "btn btn-sm", type: "button", onclick: () => finish(null) }, cancelLabel) : null,
+        el("button", {
+          class: `btn btn-sm ${confirmClass}`,
+          type: "button",
+          onclick: () => finish(withInput ? input.value : true),
+        }, confirmLabel),
+      ]);
+
+      const dialog = el("dialog", { class: "dialog confirm-dialog" }, [
+        el("p", {}, message),
+        input,
+        actions,
+      ]);
+
+      dialog.addEventListener("close", () => {
+        dialog.remove();
+        if (!resolved) resolve(null);
+      });
+
+      document.body.append(dialog);
+      dialog.showModal();
+      if (input) input.focus();
+    });
+  }
+
   // ---------- api ----------
 
   async function api(path, { method = "GET", body } = {}) {
@@ -110,6 +154,10 @@
     return new Date(year, month - 1, day, hour, minute);
   }
 
+  function formatClassDateTime(cls) {
+    return parseClassDate(cls).toLocaleString("pl-PL");
+  }
+
   function toDateTimeLocalValue(date) {
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -146,7 +194,7 @@
     const bookedCount = cls.max_capacity - cls.current_capacity;
 
     row.append(
-      td(`${cls.week_day}, ${cls.start_date} ${cls.start_hour}`),
+      td(formatClassDateTime(cls)),
       td(cls.class_name),
       td(cls.class_level),
       td(cls.location),
@@ -173,25 +221,25 @@
     const locationInput = el("select", {}, LOCATIONS.map((loc) =>
       el("option", { value: loc, selected: loc === cls.location ? "" : null }, loc),
     ));
-    const capacityInput = el("input", { type: "number", min: "1", value: cls.max_capacity });
-
-    const bookedCount = cls.max_capacity - cls.current_capacity;
-
-    row.append(
-      td(startInput),
-      td(nameInput),
-      td(levelInput),
-      td(locationInput),
-      td(el("span", {}, [`${bookedCount} / `, capacityInput])),
-    );
+    const capacityInput = el("input", { type: "number", min: "1", value: cls.max_capacity, class: "cap-input" });
 
     const messageInput = el("input", {
       type: "text",
+      class: "msg-input-wide",
       placeholder: "wiadomość dla zapisanych (wymagana przy zmianie terminu/miejsca)",
     });
 
-    const actions = el("div", { class: "btn-row edit-actions" }, [
-      messageInput,
+    row.append(
+      el("td", { class: "edit-term-cell" }, [el("div", { class: "cell-stack" }, [startInput, messageInput])]),
+      td(nameInput),
+      td(levelInput),
+      td(locationInput),
+      td(capacityInput),
+    );
+
+    messageInput.style.width = `${capacityInput.getBoundingClientRect().right - messageInput.parentElement.getBoundingClientRect().left}px`;
+
+    const actions = el("div", { class: "btn-row" }, [
       el("button", {
         class: "btn btn-sm btn-primary",
         type: "button",
@@ -226,8 +274,23 @@
   }
 
   async function deleteClass(cls) {
-    if (!confirm(`Na pewno usunąć zajęcia „${cls.class_name}” (${cls.start_date} ${cls.start_hour})?`)) return;
-    const message = prompt("Wiadomość dla zapisanych osób (opcjonalnie):", "");
+    const confirmed = await showModal({
+      message: [
+        "Na pewno usunąć zajęcia?", el("br"),
+        el("em", {}, cls.class_name), el("br"),
+        el("span", { class: "dim" }, formatClassDateTime(cls)),
+      ],
+      confirmLabel: "usuń",
+      cancelLabel: "anuluj",
+    });
+    if (!confirmed) return;
+
+    const message = await showModal({
+      message: "Wiadomość dla zapisanych osób (opcjonalnie):",
+      withInput: true,
+      confirmLabel: "ok",
+      cancelLabel: "pomiń",
+    });
 
     try {
       await api(`/api/v1/classes/${cls.id}`, { method: "DELETE", body: { message: message || null } });
@@ -246,7 +309,16 @@
         return;
       }
       const names = bookings.map((b) => `${b.first_name} ${b.last_name}`).join(", ");
-      alert(`Rezerwacje na „${cls.class_name}” (${cls.start_date} ${cls.start_hour}):\n\n${names}`);
+      await showModal({
+        message: [
+          el("em", {}, cls.class_name),
+          el("br"),
+          el("span", { class: "dim" }, formatClassDateTime(cls)),
+          el("br"), el("br"),
+          names,
+        ],
+        confirmClass: "btn-accent",
+      });
     } catch (err) {
       toast(err.message, "crit");
     }
@@ -299,7 +371,7 @@
       td(`${booking.first_name} ${booking.last_name}`),
       td(booking.email),
       td(booking.class.class_name),
-      td(`${booking.class.start_date} ${booking.class.start_hour}`),
+      td(formatClassDateTime(booking.class)),
       td(booking.pass
         ? el("span", { class: "badge" }, `#${booking.pass.id}`)
         : el("span", { class: "badge none" }, "brak")),
@@ -317,7 +389,16 @@
   }
 
   async function deleteBooking(booking) {
-    if (!confirm(`Na pewno anulować rezerwację ${booking.first_name} ${booking.last_name}?`)) return;
+    const confirmed = await showModal({
+      message: [
+        "Na pewno anulować rezerwację?", el("br"),
+        el("em", {}, `${booking.first_name} ${booking.last_name}`), el("br"),
+        el("span", { class: "dim" }, formatClassDateTime(booking.class)),
+      ],
+      confirmLabel: "anuluj",
+      cancelLabel: "wróć",
+    });
+    if (!confirmed) return;
 
     try {
       await api(`/api/v1/bookings/${booking.id}`, { method: "DELETE" });
@@ -398,7 +479,7 @@
     if (result.updated_bookings.length > 0) {
       const shown = result.updated_bookings.slice(0, 3);
       const list = el("ul", {}, shown.map((b) =>
-        el("li", {}, `${b.class.class_name} — ${b.class.start_date} ${b.class.start_hour}`),
+        el("li", {}, `${b.class.class_name} — ${formatClassDateTime(b.class)}`),
       ));
       const remaining = result.updated_bookings.length - shown.length;
       node.append(el("p", {}, "Zaktualizowane rezerwacje:"), list);
@@ -421,6 +502,7 @@
     for (const pass of state.passes) {
       const row = el("tr");
       row.append(
+        td(String(pass.id)),
         td(pass.email),
         td(`${pass.used_slots} / ${pass.total_slots}`),
         td(el("span", { class: "dim" }, new Date(pass.created_at).toLocaleString("pl-PL"))),
