@@ -62,17 +62,20 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
-			name: "failure - empty request body",
+			name: "success - empty request body defaults to all classes",
 			body: nil,
 			mocks: func(
 				service *mockclasses.MockIService,
 			) {
-				// No service call expected.
+				service.EXPECT().
+					ListClasses(gomock.Any(), false, (*int)(nil)).
+					Return([]classes.ClassPresentation{testClass}, nil)
 			},
 			assert: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				t.Helper()
 
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				assert.Equal(t, http.StatusOK, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), testClass.ClassName)
 			},
 		},
 		{

@@ -47,6 +47,7 @@ type IPendingBookings interface {
 
 type IPasses interface {
 	Insert(ctx context.Context, email string, totalSlots int) (models.Pass, error)
+	List(ctx context.Context) ([]models.Pass, error)
 	ListByEmail(ctx context.Context, email string, limit int) ([]models.Pass, error)
 }
 

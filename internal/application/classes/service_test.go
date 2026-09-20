@@ -678,6 +678,10 @@ func TestService_UpdateClass(t *testing.T) {
 				updatedClass := futureClass
 				updatedClass.ClassName = "Power Yoga"
 
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -706,6 +710,60 @@ func TestService_UpdateClass(t *testing.T) {
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       "Power Yoga",
 				CurrentCapacity: 3,
+				MaxCapacity:     futureClass.MaxCapacity,
+				Location:        futureClass.Location,
+			},
+		},
+		{
+			name: "Update start time without message when class has no bookings",
+			update: UpdateClassCommand{
+				StartTime: ptr.Of(futureTime3),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				updatedClass := futureClass
+				updatedClass.StartTime = futureTime3
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]domainModels.Class{pastClass}, nil)
+
+				classRepo.EXPECT().
+					Get(gomock.Any(), futureClass.ID).
+					Return(futureClass, nil)
+
+				classRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						futureClass.ID,
+						map[string]any{
+							"start_time": futureTime3,
+						},
+					).
+					Return(updatedClass, nil)
+
+				locationLinkProvider.EXPECT().
+					GetLink(updatedClass.Location).
+					Return("link-a", nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), futureClass.ID).
+					Return(0, nil)
+			},
+			want: ClassData{
+				ID:              futureClass.ID,
+				StartTime:       futureTime3,
+				ClassLevel:      futureClass.ClassLevel,
+				ClassName:       futureClass.ClassName,
+				CurrentCapacity: futureClass.MaxCapacity,
 				MaxCapacity:     futureClass.MaxCapacity,
 				Location:        futureClass.Location,
 			},
@@ -938,7 +996,7 @@ func TestService_UpdateClass(t *testing.T) {
 			},
 		},
 		{
-			name: "Validation error - empty msg when start time update",
+			name: "Validation error - empty msg when start time update on class with bookings",
 			update: UpdateClassCommand{
 				StartTime: ptr.Of(futureTime3),
 			},
@@ -948,13 +1006,16 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 			},
 			wantError:        true,
 			errorContains:    "message cannot be empty when updating location or class startTime",
 			wantAPIErrorCode: ptr.Of(api.BadRequestCode),
 		},
 		{
-			name: "Validation error - empty msg when location update",
+			name: "Validation error - empty msg when location update on class with bookings",
 			update: UpdateClassCommand{
 				Location: ptr.Of(otoJogaStudio),
 			},
@@ -964,6 +1025,9 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 			},
 			wantError:        true,
 			errorContains:    "message cannot be empty when updating location or class startTime",
@@ -978,6 +1042,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -1002,6 +1070,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{}, nil)
@@ -1022,6 +1094,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return(futureClasses, nil)
@@ -1041,6 +1117,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return(nil, errors.New("db error"))
@@ -1059,6 +1139,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return(nil, repositoryError.ErrNotFound)
@@ -1078,6 +1162,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -1101,6 +1189,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -1123,6 +1215,10 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -1157,6 +1253,10 @@ func TestService_UpdateClass(t *testing.T) {
 			) {
 				updatedClass := futureClass
 				updatedClass.ClassName = "Power Yoga"
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
 
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -1195,33 +1295,12 @@ func TestService_UpdateClass(t *testing.T) {
 				notifier *mock.MockINotifier,
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
-				updatedClass := futureClass
-				updatedClass.StartTime = futureTime3
-
-				classRepo.EXPECT().
-					List(gomock.Any()).
-					Return([]domainModels.Class{pastClass}, nil)
-
-				classRepo.EXPECT().
-					Get(gomock.Any(), futureClass.ID).
-					Return(futureClass, nil)
-
-				classRepo.EXPECT().
-					Update(
-						gomock.Any(),
-						futureClass.ID,
-						map[string]any{
-							"start_time": futureTime3,
-						},
-					).
-					Return(updatedClass, nil)
-
 				bookingsRepo.EXPECT().
 					ListByClassID(gomock.Any(), futureClass.ID).
 					Return(nil, errors.New("db error"))
 			},
 			wantError:     true,
-			errorContains: "could not get class after update",
+			errorContains: "could not get bookings for class",
 		},
 		{
 			name: "Location resolver error",
@@ -1345,6 +1424,10 @@ func TestService_UpdateClass(t *testing.T) {
 				updatedClass := futureClass
 				updatedClass.ClassLevel = "Advanced"
 
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
 				classRepo.EXPECT().
 					List(gomock.Any()).
 					Return([]domainModels.Class{pastClass}, nil)
@@ -1390,6 +1473,10 @@ func TestService_UpdateClass(t *testing.T) {
 			) {
 				updatedClass := futureClass
 				updatedClass.MaxCapacity = 10
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
 
 				classRepo.EXPECT().
 					List(gomock.Any()).

@@ -426,6 +426,21 @@ func (mr *MockIPassesMockRecorder) Insert(ctx, email, totalSlots any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockIPasses)(nil).Insert), ctx, email, totalSlots)
 }
 
+// List mocks base method.
+func (m *MockIPasses) List(ctx context.Context) ([]models.Pass, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx)
+	ret0, _ := ret[0].([]models.Pass)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// List indicates an expected call of List.
+func (mr *MockIPassesMockRecorder) List(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockIPasses)(nil).List), ctx)
+}
+
 // ListByEmail mocks base method.
 func (m *MockIPasses) ListByEmail(ctx context.Context, email string, limit int) ([]models.Pass, error) {
 	m.ctrl.T.Helper()
