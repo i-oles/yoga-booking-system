@@ -272,7 +272,12 @@ func (s *service) notifyClassCancellation(
 func (s *service) UpdateClass(
 	ctx context.Context, classID uuid.UUID, update UpdateClassCommand,
 ) (ClassData, error) {
-	err := s.ensureClassUpdate(ctx, classID, update)
+	existingBookings, err := s.bookingsRepo.ListByClassID(ctx, classID)
+	if err != nil {
+		return ClassData{}, fmt.Errorf("could not get bookings for class %v: %w", classID, err)
+	}
+
+	err = s.ensureClassUpdate(ctx, classID, update, len(existingBookings) > 0)
 	if err != nil {
 		return ClassData{}, fmt.Errorf("update class not possible: %w", err)
 	}
@@ -287,7 +292,7 @@ func (s *service) UpdateClass(
 		return ClassData{}, fmt.Errorf("could not update class: %w", err)
 	}
 
-	err = s.sendInformationAboutClassUpdateToUsers(ctx, update, updatedClass)
+	err = s.sendInformationAboutClassUpdateToUsers(update, updatedClass, existingBookings)
 	if err != nil {
 		return ClassData{}, fmt.Errorf("could not get class after update: %w", err)
 	}
@@ -301,11 +306,11 @@ func (s *service) UpdateClass(
 }
 
 func (s *service) ensureClassUpdate(
-	ctx context.Context, classID uuid.UUID, update UpdateClassCommand,
+	ctx context.Context, classID uuid.UUID, update UpdateClassCommand, hasBookings bool,
 ) error {
-	if (update.Location != nil || update.StartTime != nil) && update.Message == nil {
+	if (update.Location != nil || update.StartTime != nil) && hasBookings && update.Message == nil {
 		return api.ErrValidation(
-			errors.New("message cannot be empty when updating location or class startTime"),
+			errors.New("message cannot be empty when updating location or startTime for a class with existing bookings"),
 		)
 	}
 
@@ -338,15 +343,12 @@ func (s *service) ensureClassUpdate(
 }
 
 func (s *service) sendInformationAboutClassUpdateToUsers(
-	ctx context.Context, update UpdateClassCommand, updatedClass models.Class,
+	update UpdateClassCommand,
+	updatedClass models.Class,
+	bookings []models.Booking,
 ) error {
 	if update.Location == nil && update.StartTime == nil {
 		return nil
-	}
-
-	bookings, err := s.bookingsRepo.ListByClassID(ctx, updatedClass.ID)
-	if err != nil {
-		return fmt.Errorf("could not get bookings for class %v: %w", updatedClass.ID, err)
 	}
 
 	locationLink, err := s.locationResolver.GetLink(updatedClass.Location)
