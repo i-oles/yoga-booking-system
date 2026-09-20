@@ -356,9 +356,17 @@
     const emptyNode = document.querySelector("#bookings .empty");
     clear(tbody);
 
-    emptyNode.hidden = state.bookings.length > 0;
+    const onlyUpcoming = document.getElementById("bookings-upcoming").checked;
+    const now = new Date();
 
-    for (const booking of state.bookings) {
+    const rows = state.bookings
+      .map((booking) => ({ booking, date: parseClassDate(booking.class) }))
+      .filter((row) => !onlyUpcoming || row.date >= now)
+      .sort((a, b) => a.date - b.date);
+
+    emptyNode.hidden = rows.length > 0;
+
+    for (const { booking } of rows) {
       tbody.append(renderBookingRow(booking));
     }
   }
@@ -587,6 +595,7 @@
     document.getElementById("logout").addEventListener("click", () => logout());
 
     document.getElementById("classes-upcoming").addEventListener("change", renderClasses);
+    document.getElementById("bookings-upcoming").addEventListener("change", renderBookings);
     document.getElementById("class-create-form").addEventListener("submit", (e) => {
       e.preventDefault();
       createClass(e.target);

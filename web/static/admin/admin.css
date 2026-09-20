@@ -187,6 +187,8 @@ details.accordion .tile-body{
   color:var(--text-dim);
 }
 .tile-controls{display:flex; align-items:center; gap:8px;}
+.tile-bookings .tile-head{right:2px;}
+.tile-bookings .toggle{position:relative; top:3px;}
 .tile-add{
   position:absolute;
   top:6px; right:6px;

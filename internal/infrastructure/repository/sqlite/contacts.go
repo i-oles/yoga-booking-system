@@ -53,7 +53,7 @@ func (r *contactsRepo) List(ctx context.Context) ([]models.Contact, error) {
 	var SQLContacts []db.SQLContact
 
 	if err := r.db.WithContext(ctx).
-		Order("last_name ASC").
+		Order("id ASC").
 		Find(&SQLContacts).Error; err != nil {
 		return nil, fmt.Errorf("could not list contacts: %w", err)
 	}
