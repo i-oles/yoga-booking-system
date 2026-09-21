@@ -222,10 +222,14 @@
     ));
     const capacityInput = el("input", { type: "number", min: "1", value: cls.max_capacity, class: "cap-input" });
 
+    const hasBookings = cls.max_capacity - cls.current_capacity > 0;
+
     const messageInput = el("input", {
       type: "text",
       class: "msg-input-wide",
-      placeholder: "wiadomość dla zapisanych (wymagana przy zmianie terminu/miejsca)",
+      placeholder: hasBookings
+        ? "wiadomość dla zapisanych (wymagana - zajęcia mają rezerwacje)"
+        : "wiadomość dla zapisanych (opcjonalna - brak rezerwacji)",
     });
 
     row.append(
@@ -243,8 +247,8 @@
         class: "btn btn-sm btn-primary",
         type: "button",
         onclick: () => {
-          if (!messageInput.value.trim()) {
-            toast("Podaj wiadomość dla zapisanych osób — zmiana terminu/miejsca tego wymaga.", "crit");
+          if (hasBookings && !messageInput.value.trim()) {
+            toast("Podaj wiadomość dla zapisanych osób — zajęcia mają rezerwacje.", "crit");
             return;
           }
           saveClass(cls, {
@@ -253,7 +257,7 @@
             class_level: levelInput.value,
             location: locationInput.value,
             max_capacity: Number(capacityInput.value),
-            message: messageInput.value.trim(),
+            message: messageInput.value.trim() || null,
           });
         },
       }, "Zapisz"),

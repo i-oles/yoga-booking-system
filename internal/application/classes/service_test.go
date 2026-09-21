@@ -665,7 +665,7 @@ func TestService_UpdateClass(t *testing.T) {
 		wantAPIErrorCode *int
 	}{
 		{
-			name: "Update class name",
+			name: "Update class name when class has bookings but no message required",
 			update: UpdateClassCommand{
 				ClassName: ptr.Of("Power Yoga"),
 			},
@@ -680,7 +680,7 @@ func TestService_UpdateClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					ListByClassID(gomock.Any(), futureClass.ID).
-					Return([]domainModels.Booking{}, nil)
+					Return([]domainModels.Booking{bookingWithoutPass}, nil)
 
 				classRepo.EXPECT().
 					List(gomock.Any()).
@@ -702,14 +702,64 @@ func TestService_UpdateClass(t *testing.T) {
 
 				bookingsRepo.EXPECT().
 					CountForClassID(gomock.Any(), futureClass.ID).
-					Return(2, nil)
+					Return(1, nil)
 			},
 			want: ClassData{
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      futureClass.ClassLevel,
 				ClassName:       "Power Yoga",
-				CurrentCapacity: 3,
+				CurrentCapacity: 4,
+				MaxCapacity:     futureClass.MaxCapacity,
+				Location:        futureClass.Location,
+			},
+		},
+		{
+			name: "Update class name without message when class has no bookings",
+			update: UpdateClassCommand{
+				ClassName: ptr.Of("Iron Yoga"),
+			},
+			mocks: func(
+				classRepo *mock.MockIClasses,
+				bookingsRepo *mock.MockIBookings,
+				notifier *mock.MockINotifier,
+				locationLinkProvider *mock.MockILinkProvider,
+			) {
+				updatedClass := futureClass
+				updatedClass.ClassName = "Iron Yoga"
+
+				bookingsRepo.EXPECT().
+					ListByClassID(gomock.Any(), futureClass.ID).
+					Return([]domainModels.Booking{}, nil)
+
+				classRepo.EXPECT().
+					List(gomock.Any()).
+					Return([]domainModels.Class{pastClass}, nil)
+
+				classRepo.EXPECT().
+					Get(gomock.Any(), futureClass.ID).
+					Return(futureClass, nil)
+
+				classRepo.EXPECT().
+					Update(
+						gomock.Any(),
+						futureClass.ID,
+						map[string]any{
+							"class_name": "Iron Yoga",
+						},
+					).
+					Return(updatedClass, nil)
+
+				bookingsRepo.EXPECT().
+					CountForClassID(gomock.Any(), futureClass.ID).
+					Return(0, nil)
+			},
+			want: ClassData{
+				ID:              futureClass.ID,
+				StartTime:       futureClass.StartTime,
+				ClassLevel:      futureClass.ClassLevel,
+				ClassName:       "Iron Yoga",
+				CurrentCapacity: futureClass.MaxCapacity,
 				MaxCapacity:     futureClass.MaxCapacity,
 				Location:        futureClass.Location,
 			},
