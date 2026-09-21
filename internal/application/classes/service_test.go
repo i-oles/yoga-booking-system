@@ -717,7 +717,7 @@ func TestService_UpdateClass(t *testing.T) {
 		{
 			name: "Update class name without message when class has no bookings",
 			update: UpdateClassCommand{
-				ClassName: ptr.Of("Power Yoga"),
+				ClassName: ptr.Of("Iron Yoga"),
 			},
 			mocks: func(
 				classRepo *mock.MockIClasses,
@@ -726,7 +726,7 @@ func TestService_UpdateClass(t *testing.T) {
 				locationLinkProvider *mock.MockILinkProvider,
 			) {
 				updatedClass := futureClass
-				updatedClass.ClassName = "Power Yoga"
+				updatedClass.ClassName = "Iron Yoga"
 
 				bookingsRepo.EXPECT().
 					ListByClassID(gomock.Any(), futureClass.ID).
@@ -745,7 +745,7 @@ func TestService_UpdateClass(t *testing.T) {
 						gomock.Any(),
 						futureClass.ID,
 						map[string]any{
-							"class_name": "Power Yoga",
+							"class_name": "Iron Yoga",
 						},
 					).
 					Return(updatedClass, nil)
@@ -758,7 +758,7 @@ func TestService_UpdateClass(t *testing.T) {
 				ID:              futureClass.ID,
 				StartTime:       futureClass.StartTime,
 				ClassLevel:      futureClass.ClassLevel,
-				ClassName:       "Power Yoga",
+				ClassName:       "Iron Yoga",
 				CurrentCapacity: futureClass.MaxCapacity,
 				MaxCapacity:     futureClass.MaxCapacity,
 				Location:        futureClass.Location,
